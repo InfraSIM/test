@@ -33,8 +33,10 @@ class T36706_idic_vBMCDataEmulation(CBaseCase):
                     fru[key] = value
 
                 try:
-                    #Try to find the corresponding sensor id by product name from JSON file.
-                    sensor_id = self.data[fru['Product Name']]
+                    #Try to find the corresponding sensor id status by product name from JSON file.
+                    sensor_dic = self.data[fru['Product Name']]
+                    sensor_id = sensor_dic.keys()[0]
+                    sensor_status = sensor_dic[sensor_id]
 
                 except KeyError, e:
                     #If product name missing, block this case.
@@ -47,22 +49,24 @@ class T36706_idic_vBMCDataEmulation(CBaseCase):
                                 .format(e, e, self.__class__.__name__))
 
                 else:
+                    expected_sel =  "#"+sensor_id +" | Upper Critical going high | Asserted"
 
-                    sensor_value = 1000.00
-
-                    #Set sensor value and then validate
+                    #Inject sensor fault and validate sel list if sel event get triggered.
                     bmc_ssh = obj_bmc.ssh_ipmi_sim
-                    bmc_ssh.send_command_wait_string(str_command = 'sensor value set {} {} {}'.format(sensor_id, sensor_value,chr(13)), wait = 'IPMI_SIM', int_time_out = 3, b_with_buff = False)
-                    str_rsp = bmc_ssh.send_command_wait_string(str_command = 'sensor value get {} {}'.format(sensor_id, chr(13)), wait = 'IPMI_SIM', int_time_out = 3, b_with_buff = False)
+                    bmc_ssh.send_command_wait_string(str_command = 'sensor mode set {} fault {} {}'
+                                                     .format(sensor_id,sensor_status,chr(13)), wait = 'IPMI_SIM',
+                                                     int_time_out = 30, b_with_buff = False)
 
-                    if not re.search(str(sensor_value), str_rsp):
-                        #If failed to set sensor value
-                        self.result(FAIL, 'Node {} on rack {} failed to set sensor value to {}, '
-                                    'ipmitool return:\n{}'.
-                                    format(obj_node.get_name(), obj_rack.get_name(), sensor_value, str_rsp))
+                    str_ret, str_rsp = obj_node.get_bmc().ipmi.ipmitool_standard_cmd('sel list')
+                    if not re.search(str(expected_sel), str_rsp):
+                        #If failed to set sensor fault
+                        self.result(FAIL, 'Node {} on rack {} failed to set sensor {} to mode fault status uc, '
+                                          'node vBMC ip is {}, ipmitool return:\n{}'
+                                    .format(obj_node.get_name(), obj_rack.get_name(),
+                                            sensor_id, obj_bmc.get_ip(), str_rsp))
 
                     else:
-                        self.log('INFO', 'Set sensor value succeed: {}'.format(str_rsp))
+                        self.log('INFO', 'Set sensor mode fault succeed: {}'.format(str_rsp))
 
                 time.sleep(1)
 

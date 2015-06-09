@@ -1,9 +1,15 @@
 [
     {
-        "QuantaPlex T41S-2U":"0xc0",
-        "D51B-2U (dual 10G LoM)":"0xc0",
-        "S2600KP":"0x30",
-        "PowerEdge C6320":"0x80",
-        "":"0x30"
+        "//": "below data follows format-- Product Name: {sensor id: expeted sensor status}",
+        "//":"Quanta T41",
+        "QuantaPlex T41S-2U":{"0xec": "uc" },
+        "//": "Quanta D51",
+        "D51B-2U (dual 10G LoM)":{"0xec": "uc"},
+        "//": "s2600kp",
+        "S2600KP":{"0x23": "uc"},
+        "//": "dell r630",
+        "":{"0x4": "uc"},
+        "//": "dell c6320",
+        "PowerEdge C6320":{"0xb1": "uc"}
     }
 ]
