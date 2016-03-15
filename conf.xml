@@ -1,0 +1,36 @@
+<configuration>
+	<smtp_config>
+		<server>mail_server:port</server>
+		<from_address>mail_address@domain</from_address>
+		<from_name>name</from_name>
+		<to_list></to_list>
+		<cc_list />
+		<notification_event>
+			<subject>Qual Initialized</subject>
+			<enabled>False</enabled>
+			<to_list>mail_address@domain</to_list>
+			<cc_list />
+			<template>Qual Initialized.html</template>
+		</notification_event>
+		<notification_event>
+			<subject>Qual Start</subject>
+			<enabled>False</enabled>
+			<to_list>mail_address@domain</to_list>
+			<cc_list />
+			<template>Qual Start.html</template>
+		</notification_event>
+		<notification_event>
+			<subject>Qual Complete</subject>
+			<enabled>False</enabled>
+			<to_list>mail_address@domain</to_list>
+			<cc_list />
+			<template>Qual Complete.html</template>
+		</notification_event>
+	</smtp_config>
+	<testrail_config>
+		<root>\\testrail_server\api</root>
+		<username>unknown</username>
+		<password>unknown</password>
+	</testrail_config>
+	<puffer_root>\\127.0.0.1\your_path_to\test</puffer_root>
+</configuration>

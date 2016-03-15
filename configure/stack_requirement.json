@@ -1,0 +1,26 @@
+{
+    "vRackSystem": {
+        "protocol": "http",
+        "ip": "10.62.59.99",
+        "port": 8888,
+        "username": "admin",
+        "password": "admin",
+        "root": "/api/v1"
+    },
+
+    "available_HyperVisor": {
+        "ESXi1": "root/cisolution@192.168.190.17"
+    },
+
+    "vRacks": {
+        "vRack1": {
+            "vPDU": 1,
+            "vSwitch": 0,
+            "vNode": {
+		"quanta_t41":1,
+		"quanta_d51":1,
+		"rinjin":1
+            }
+        }
+    }
+}
