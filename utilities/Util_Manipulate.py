@@ -26,6 +26,19 @@ GEN_CONF = {
 }
 NODES_TYPE = ["quanta_t41", "quanta_d51", "rinjin",
               "dell_c6320", "dell_r630", "vnode"]
+NODES_NETWORK = "VM Network"
+PDU_CONFIG = {
+    "hawk": {
+        "name": "hawk",
+        "database": "ipia.db",
+        "snmpdata": "hawk"
+    },
+    "sentry": {
+        "name": "SENTRY",
+        "database": "sentry3.db",
+        "snmpdata": "sentry"
+    }
+}
 
 
 def exit_func(e):
@@ -190,10 +203,15 @@ def delete_all_vms(esxi_id):
                  expect_status=200)
 
 
-def deploy_node(esxi_id, datastore, power, nodetype, ova):
+def deploy_node(esxi_id, datastore, power, nodetype, ova, network):
     url = "esxi/{}/deploy".format(esxi_id)
-    payload = {"datastore": datastore, "power": power,
-               "count": "1", "nodetype": nodetype}
+    payload = {"datastore": datastore,
+               "power": power,
+               "count": "1",
+               "nodetype": nodetype,
+               "controlnetwork": network,
+               "duration": 0
+               }
     if ova:
         payload["ova"] = ova
     return rest_api(target=url, action="post", payload=payload)
@@ -211,6 +229,19 @@ def vpdu_restart(esxi_id, vpdu_ip):
     rest_api(target="esxi/{}/vpdurestart".format(esxi_id),
              action="post", payload={"ip": vpdu_ip})
 
+def vpdu_config_update(esxi_id, vpdu_ip, vpdu_type):
+    print "start to update the vpdu config info"
+    if vpdu_type not in PDU_CONFIG:
+        exit_func("type of vpdu {} is not supported".format(vpdu_type))
+    config_info = PDU_CONFIG[vpdu_type]
+    rest_api(target="esxi/{}/vpdusetpduinfo".format(esxi_id),
+             action="post", 
+             payload={
+                 "ip": vpdu_ip, "name": config_info["name"],
+                 "database": config_info["database"],
+                 "snmpdata": config_info["snmpdata"]
+             })
+
 
 def vpdu_mapping(esxi_id, vpdu_list, node_list):
     if not vpdu_list:
@@ -226,15 +257,21 @@ def vpdu_mapping(esxi_id, vpdu_list, node_list):
         vpdu = vpdu_list[i]
         for vm in vms:
             if vpdu == vm["name"]:
+                vpdu_type = vm["name"].split('_')[1]
                 vpdu_admin_ip = vm["ip"][0]
-                vpdu_control_ip = vm["ip"][1]
+                vpdu_config_update(esxi_id, vpdu_admin_ip, vpdu_type)
+                try:
+                    vpdu_control_ip = vm["ip"][1]
+                except IndexError:
+                    print "There is no control network for the vPDU"
+                    vpdu_control_ip = "0.0.0.0"
                 vpdu_dict[vpdu] = {}
                 vpdu_dict[vpdu]['admin'] = vpdu_admin_ip
                 vpdu_dict[vpdu]['control'] = vpdu_control_ip
                 GEN_CONF["vRacks"][-1]["vPDU"][i]["ip"] = vpdu_admin_ip
                 GEN_CONF["vRacks"][-1]["vPDU"][i]["outlet"] = {}
                 rest_api(target="esxi/{}/vpduhostadd".format(esxi_id),
-                         action="post", payload={"ip": vpdu_control_ip})
+                         action="post", payload={"ip": vpdu_admin_ip})
                 break
 
     # mapping the nodes
@@ -251,12 +288,12 @@ def vpdu_mapping(esxi_id, vpdu_list, node_list):
                 try:
                     node_name = node_list.pop(0)
                 except IndexError:
-                    vpdu_restart(esxi_id, vpdu_control_ip)
+                    vpdu_restart(esxi_id, vpdu_admin_ip)
                     return
                 pos_key = "{}.{}".format(i, j)
                 rest_api(target="esxi/{}/vpdupwdadd".format(esxi_id),
                          action="post",
-                         payload={"ip": vpdu_control_ip,
+                         payload={"ip": vpdu_admin_ip,
                                   "pdu": i, "port": j,
                                   "password": "idic"})
                 GEN_CONF["vRacks"][-1]["vPDU"][loop]["outlet"][pos_key] = "idic"
@@ -266,7 +303,7 @@ def vpdu_mapping(esxi_id, vpdu_list, node_list):
                         datastore = vm["datastore"]
                         rest_api(target="esxi/{}/vpdumapadd".format(esxi_id),
                                  action="post",
-                                 payload={"ip": vpdu_control_ip, "dt": datastore,
+                                 payload={"ip": vpdu_admin_ip, "dt": datastore,
                                           "name": node_name,
                                           "pdu": i, "port": j})
                         node_info = {}
@@ -279,7 +316,7 @@ def vpdu_mapping(esxi_id, vpdu_list, node_list):
                                             "username": "admin",
                                             "password": "admin"}
                         GEN_CONF["vRacks"][-1]["vNode"].append(node_info)
-        vpdu_restart(esxi_id, vpdu_control_ip)
+        vpdu_restart(esxi_id, vpdu_admin_ip)
 
 
 def deploy_vrack(vpdu_num, vswitch_num, vnodes):
@@ -319,7 +356,7 @@ def deploy_vrack(vpdu_num, vswitch_num, vnodes):
 
             for ova in OVA_FILE:
                 if "vpdu" in ova:
-                    print "vpdu ova is transferred by user"
+                    print "vpdu {} ova is transferred by user".format(ova)
                     pdu_ova = ova
                     OVA_FILE.remove(pdu_ova)
                     break
@@ -331,7 +368,7 @@ def deploy_vrack(vpdu_num, vswitch_num, vnodes):
             for i in range(vpdu_num):
                 pdu_name = deploy_node(hypervisor_id,
                                        hypervisor["datastores"][0],
-                                       "on", "pdu", pdu_ova)
+                                       "on", "pdu", pdu_ova,0)
                 pdu_list.append(pdu_name)
                 time.sleep(10)
                 GEN_CONF["vRacks"][-1]["vPDU"].append(
@@ -394,7 +431,8 @@ def deploy_vrack(vpdu_num, vswitch_num, vnodes):
                 print '{} {} ...'.format(node_type, node_ova)
                 node_name = deploy_node(hypervisor_id,
                                         hypervisor["datastores"][0],
-                                        "on", node_type, node_ova)
+                                        "on", node_type, node_ova,
+                                        NODES_NETWORK)
                 node_list.append(node_name)
                 print 'sleep 15s ...'
                 time.sleep(10)
