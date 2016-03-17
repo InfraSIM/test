@@ -162,7 +162,7 @@ class CNode(CDevice):
 
     def get_obm_of_service(self, str_service):
         self.__init_obms()
-        return self.obms.get_obm_of_service(str_service)
+        return self.obj_obm_collection.get_obm_of_service(str_service)
 
     def get_workflows(self):
         self.__init_workflows()
