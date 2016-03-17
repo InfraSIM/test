@@ -21,6 +21,27 @@ def clear_list(list_data):
     while(list_data != []):
         list_data.pop()
     return list_data
+
+def strip_color_code(str):
+    '''
+    ************************************************
+    [Author  ]: June.Zhou@emc.com
+    [Function]: It will strip color code from texttable string, eg. test output from vpdu map list is texttable string.
+                usage example: raw_data = strip_color_code(content)
+    [Input   ]: str  -  texttable string to strip color code from
+    [Output  ]: raw string that with all color code striped
+    [History ]
+        - June.Zhou@emc.com 03/17/2016
+            initial edition
+    ************************************************
+    '''
+    strip_ANSI_escape_sequences_sub = re.compile(r"""
+    \x1b     # literal ESC
+    \[       # literal [
+    [;\d]*   # zero or more digits or semicolons
+    [A-Za-z] # a letter
+    """, re.VERBOSE).sub
+    return strip_ANSI_escape_sequences_sub("", str)
     
 def byte_in_response(list_response, index):
     '''
