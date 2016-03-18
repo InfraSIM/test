@@ -24,7 +24,7 @@ GEN_CONF = {
     "available_HyperVisor": [],
     "vRacks": []
 }
-NODES_TYPE = ["quanta_t41", "quanta_d51", "rinjin",
+NODES_TYPE = ["quanta_t41", "quanta_d51", "s2600kp",
               "dell_c6320", "dell_r630", "vnode"]
 NODES_NETWORK = "VM Network"
 PDU_CONFIG = {
