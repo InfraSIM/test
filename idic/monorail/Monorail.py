@@ -317,11 +317,11 @@ class CMonorail(CDevice):
 
     def get_workflows(self):
         self.__init_workflows()
-        return self.obj_workflow_collection.get_workflows()
+        return self.workflows.get_workflows()
 
     def get_workflow_by_id(self, str_id):
         self.__init_workflows()
-        return self.obj_workflow_collection.get_workflow_by_id(str_id)
+        return self.workflows.get_workflow_by_id(str_id)
 
     def get_workflow_library(self):
         """

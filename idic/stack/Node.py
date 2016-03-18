@@ -38,9 +38,6 @@ class CNode(CDevice):
     def get_name(self):
         return self.name
 
-    def get_config(self):
-        return self.dict_config
-
     def set_bmc(self, obj_bmc):
         self.bmc = obj_bmc
 
