@@ -1,6 +1,7 @@
 ﻿'''
+*********************************************************
+Copyright @ 2015 EMC Corporation All Rights Reserved
 *****************************************************************************************************
-Copyright 2013 EMC Inc
 This file is a part of puffer automation test framework
 
 [Filename]: CBaseCase.py

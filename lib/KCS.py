@@ -1,7 +1,7 @@
 '''
 *********************************************************
- Copyright 2014 EMC Inc.
-
+Copyright @ 2015 EMC Corporation All Rights Reserved
+*********************************************************
 [Filename]: KCS.py
 [Author  ]: Bruce.Yang@emc.com
 [Purpose ]: This module is to add support connection to host OS via JSON-RPC

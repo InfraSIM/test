@@ -1,18 +1,8 @@
-"""
+'''
 *********************************************************
- Copyright 2013 EMC Inc.
-
-[Filename]: 
-[Author  ]: 
-[Purpose ]: 
-[Contains]: 
-[History ]:
-**********************************************************
- VERSION    EDITOR          DATE            COMMENT
-**********************************************************
-
+Copyright @ 2015 EMC Corporation All Rights Reserved
 *********************************************************
-"""
+'''
 from threading import Lock, Event, Thread
 import sys
 import os

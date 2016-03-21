@@ -1,5 +1,7 @@
 '''
- Copyright 2013 EMC Inc.
+*********************************************************
+Copyright @ 2015 EMC Corporation All Rights Reserved
+*********************************************************
 '''
 import xml.etree.ElementTree as ET
 import datetime

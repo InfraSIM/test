@@ -2,11 +2,10 @@
 *********************************************************
 Copyright @ 2015 EMC Corporation All Rights Reserved
 *********************************************************
-'''
-'''
 Created on Nov 30, 2015
 
 @author: Tony Su
+*********************************************************
 '''
 from lib.Device import CDevice
 from idic.stack.Hypervisor import CHypervisor

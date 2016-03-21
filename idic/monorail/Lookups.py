@@ -1,9 +1,12 @@
 ﻿'''
-Copyright 2015 EMC Inc
+*********************************************************
+Copyright @ 2015 EMC Corporation All Rights Reserved
+*********************************************************
 This file is a part of puffer automation test framework
 [Filename]: Lookup.py
 [Author  ]: Yuki Wu(Yuki.Wu@emc.com)
 [Purpose ]: Define Monorail Lookups abstraction
+*********************************************************
 '''
 
 from lib.Device import CDevice

@@ -2,8 +2,6 @@
 *********************************************************
 Copyright @ 2015 EMC Corporation All Rights Reserved
 *********************************************************
-'''
-"""
 Created on Apr 29, 2015
 
 This module is implement for external automation tools to talk with TestRail
@@ -14,7 +12,8 @@ may be added to the two modules. If there are updates from TestRail about the tw
 we need to be careful of the customization part
 
 @author: Bruce.Yang@emc.com
-"""
+*********************************************************
+'''
 
 from restapi import APIClient
 import urllib2

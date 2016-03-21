@@ -1,7 +1,7 @@
 '''
 *********************************************************
- Copyright 2014 EMC Inc.
-
+Copyright @ 2015 EMC Corporation All Rights Reserved
+*********************************************************
 [Filename]: EmailWorker.py
 [Author  ]: Bruce.Yang@emc.com
 [Purpose ]: 

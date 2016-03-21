@@ -1,9 +1,12 @@
 '''
-Copyright 2015 EMC Inc
+*********************************************************
+Copyright @ 2015 EMC Corporation All Rights Reserved
+*********************************************************
 This file is a part of puffer automation test framework
 [Filename]: Sku.py
 [Author  ]: Payne Wang(Payne.Wang@emc.com)
 [Purpose ]: Define Monorail SKU abstraction
+*********************************************************
 '''
 
 from lib.Device import CDevice

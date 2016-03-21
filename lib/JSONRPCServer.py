@@ -1,7 +1,7 @@
-"""
-********************************************************************
- Copyright 2013 EMC Inc.
-
+'''
+*********************************************************
+Copyright @ 2015 EMC Corporation All Rights Reserved
+*********************************************************
 [Filename]: JSONRPCServer.py
 [Author  ]: eric.wang5@emc.com
 [Purpose ]: The JSONRPCServer provides interface for the 
@@ -13,7 +13,7 @@
 ********************************************************************
   V1.0        eric.wang5@emc.com    05/12/2014       First edition
 ********************************************************************
-"""
+'''
 
 import os
 import xml.etree.ElementTree as ET
