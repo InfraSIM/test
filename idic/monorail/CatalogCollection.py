@@ -107,35 +107,19 @@ class CCatalogCollection(CDevice):
         self.update()
         return len(self.list_catalog_id)
 
-    def get_catalog_from_source(self, str_source):
+    def get_catalog_from_identity(self, str_identity):
         """
-        If nodes get catalog from certain source, it shall return
-        @param str_source: source of a certain catalog for search
-        @return: if this is node catalog, a instance of catalog from
-            target source shall be returned;
-            If this is one cotalog from global catalogs, a list of
-            matched catalog instances shall be returned.
+        If nodes get catalog from certain identity, it shall return
+        a catalog instance
+        @param str_identity: identity of a certain catalog for search
+            for node, source name should be provided as identity
+            for raw catalog, catalog id should be the identity
+        @return: a instance of catalog from target source
         """
-        # If this is node catalog collection
-        if 'nodes' in self.uri.split('/'):
-            self.log('INFO', 'Initialize node catalog from source {}...'.
-                     format(str_source))
-            obj_catalog = CCatalog(self, str_source)
-            obj_catalog.update()
-            return obj_catalog
-        # If this is raw catalog collection
-        else:
-            list_catalog = []
-            self.update()
+        self.log('INFO', 'Initialize node catalog from identity {}...'.
+                 format(str_identity))
+        obj_catalog = CCatalog(self, str_identity)
+        obj_catalog.update()
+        return obj_catalog
 
-            # gevent.joinall([gevent.spawn(catalog.update)
-            #                 for catalog in self.dict_catalogs.values()])
-
-            gevent.joinall([gevent.spawn(self.dict_catalogs[dict_data['id']].set_mon_data, dict_data)
-                            for dict_data in self.mon_data['json']])
-
-            for catalog in self.dict_catalogs.values():
-                if catalog.source.lower() == 'bmc':
-                    list_catalog.append(catalog)
-            return list_catalog
 

@@ -131,9 +131,9 @@ class CNode(CDevice):
         self.obj_catalog_collection.update()
         return self.obj_catalog_collection
 
-    def get_catalog_from_source(self, str_source):
+    def get_catalog_from_identity(self, str_identity):
         self.__init_catalogs()
-        return self.obj_catalog_collection.get_catalog_from_source(str_source)
+        return self.obj_catalog_collection.get_catalog_from_identity(str_identity)
 
     def get_pollers(self):
         self.__init_pollers()
@@ -193,7 +193,7 @@ class CNode(CDevice):
         @return: str_bmc_ip, IP in string
         """
         try:
-            obj_bmc_catalog = self.get_catalog_from_source('bmc')
+            obj_bmc_catalog = self.get_catalog_from_identity('bmc')
         except Exception, e:
             raise Exception('Computer system {}  (ID: {}) fail to get catalog from source BMC:\n{}'.
                             format(self.name, self.id, e.args[0]))

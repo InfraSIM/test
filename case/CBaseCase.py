@@ -51,7 +51,7 @@ INTERFACE_IOL = 'ipmi_iol'
 INTERFACE_IPMI = 'ipmi'
 
 FIELD_INFRASIM = 'idic'
-FIELD_RACKHD = 'monorail'
+FIELD_RACKHD = 'rackhd'
 LIST_FIELD_IN_CASE_NAME = [FIELD_INFRASIM, FIELD_RACKHD]
 
 class CBaseCase(CLogger):
@@ -882,7 +882,8 @@ class CBaseCase(CLogger):
         obj_ssh.disconnect()
 
     def config_graph(self):
-        self.graph.config(self.monorail, self.ssh, self.log, self.stack)
+        obj_ssh = self.monorail.obj_ssh_agent if self.monorail else None
+        self.graph.config(self.monorail, obj_ssh, self.log, self.stack)
 
         return True
 

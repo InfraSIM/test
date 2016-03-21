@@ -1,8 +1,8 @@
 {
     "platform": "RackHD",
-    "monorail_rest_rev": "1.1",
-    "monorail_rest_protocol": "http",
-    "monorail_rest_port": 8080,
+    "rest_rev": "1.1",
+    "rest_protocol": "http",
+    "rest_port": 8080,
     "username": "",
     "password": ""
 }
