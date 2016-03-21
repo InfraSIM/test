@@ -51,9 +51,9 @@ class CMonorail(CDevice):
             self.password = dict_hwimo['password']
 
             # Monorail REST info
-            self.str_mon_rev = dict_hwimo['monorail_rest_rev']
-            self.str_mon_protocol = dict_hwimo['monorail_rest_protocol']
-            self.str_mon_port =dict_hwimo['monorail_rest_port']
+            self.str_mon_rev = dict_hwimo['rest_rev']
+            self.str_mon_protocol = dict_hwimo['rest_protocol']
+            self.str_mon_port =dict_hwimo['rest_port']
             self.uri = '{0}://{1}:{2}/api/{3}'.format(self.str_mon_protocol,
                                                       self.ip,
                                                       self.str_mon_port,
@@ -222,9 +222,9 @@ class CMonorail(CDevice):
         self.__init_catalogs()
         return self.catalogs.get_catalog_count()
 
-    def get_catalog_from_source(self, str_source):
+    def get_catalog_from_identity(self, str_identity):
         self.__init_catalogs()
-        return self.catalogs.get_catalog_from_source(str_source)
+        return self.catalogs.get_catalog_from_identity(str_identity)
 
     def get_nodes(self, *node_type):
         self.__init_nodes()
