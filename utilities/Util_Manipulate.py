@@ -388,12 +388,12 @@ def deploy_vrack(vpdu_num, vswitch_num, vnodes):
 
         if not vnodes:
             # for CI
-            print "INFO: the default number for CI test is 4"
+            print "INFO: the default number for CI test is 2"
             vnode = {}
             for node_ova in OVA_FILE:
                 try:
-                    node_type = re.match("vbmc_(.*)_\d+\.ova", node_ova).group(1)
-                    vnodes[node_type] = 4
+                    node_type = re.match("vbmc_(.*)_\w+\.ova", node_ova).group(1)
+                    vnodes[node_type] = 2
                 except AttributeError:
                     error_msg = "ERROR: the ova file {} is not " \
                                 "expected".format(node_ova)
@@ -406,7 +406,7 @@ def deploy_vrack(vpdu_num, vswitch_num, vnodes):
                                                  action="post",
                                                  payload={"type": node_type})
                     if download_node_ova:
-                        vnodes[node_type] = 4
+                        vnodes[node_type] = 2
             if not vnodes:
                 print "WARNING: there is no ova available for CI node deployment"
 
