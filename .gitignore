@@ -1,0 +1,17 @@
+.project
+.pydevproject
+*.pyc
+*.swp
+*.un~
+raw_sel.db
+.settings/
+.metadata/
+test/
+log/
+task/
+email_box/
+build/
+dist/
+h/
+tags
+.idea/
