@@ -2,16 +2,13 @@
 *********************************************************
 Copyright @ 2015 EMC Corporation All Rights Reserved
 *********************************************************
-'''
-'''
-===============================================================================
- [File Name]:util_create_md5_for_bin_file.py
- [Purpose]:This utility is for FFV fixed SerDes register value checking
- [History]:
- 08/20/2013 Bruce.Yang@emc.com
-     First verion, will create md5 file with the same name with ext of ".md5" for
-     each binary file in the folder where the script is located
-===============================================================================
+[Filename]: util_create_md5_for_bin_file.py
+[Purpose ]: This utility is for FFV fixed SerDes register value checking
+[History ]:
+08/20/2013 Bruce.Yang@emc.com
+    First verion, will create md5 file with the same name with ext of ".md5" for
+    each binary file in the folder where the script is located
+*********************************************************
 '''
 
 import os

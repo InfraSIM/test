@@ -2,11 +2,10 @@
 *********************************************************
 Copyright @ 2015 EMC Corporation All Rights Reserved
 *********************************************************
-'''
-'''
 Created on Sep 7, 2015
 
 @author: Forrest Gu
+*********************************************************
 '''
 import paramiko
 import traceback

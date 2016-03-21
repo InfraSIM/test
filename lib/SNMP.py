@@ -2,11 +2,10 @@
 *********************************************************
 Copyright @ 2015 EMC Corporation All Rights Reserved
 *********************************************************
-'''
-'''
 Created on Dec 30, 2015
 
 @author: Forrest Gu
+*********************************************************
 '''
 
 from LogTool import CLogTool

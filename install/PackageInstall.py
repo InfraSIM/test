@@ -2,12 +2,11 @@
 *********************************************************
 Copyright @ 2015 EMC Corporation All Rights Reserved
 *********************************************************
-'''
-'''
 Created on Jul 30, 2015
 @author: wuy1
 
 Currently user need to input the password during the installation in Linux. In the future when integration with Jenkins, we will develop the feature to let user input the password and rend it in a configure file. Then it will automatically write the password during installation.
+*********************************************************
 '''
 
 import os

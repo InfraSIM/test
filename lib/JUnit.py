@@ -3,7 +3,6 @@
 Copyright @ 2015 EMC Corporation All Rights Reserved
 *********************************************************
 '''
-#!/usr/bin/env python
 from collections import defaultdict
 import sys, re
 import xml.etree.ElementTree as ET

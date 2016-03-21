@@ -1,8 +1,12 @@
-"""
+'''
+*********************************************************
+Copyright @ 2015 EMC Corporation All Rights Reserved
+*********************************************************
 Created on Jan 4th, 2016
 This module is used to manipulate nodes, vPDU and vSwitch
 @author: Payne.Wang@emc.com
-"""
+*********************************************************
+'''
 
 import sys
 import json

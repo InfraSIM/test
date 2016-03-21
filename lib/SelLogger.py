@@ -1,18 +1,18 @@
 '''
-#*********************************************************
-# Copyright 2013 EMC Inc.
-#
-# [Filename]: SelLogger.py
-# [Author  ]: Eric Wang(eric.wang5@emc.com)
-# [Purpose ]: Implementation for SEL log dump by SSH
-# [Contains]: 
-#           
-# [History ]:
-#*********************************************************
-# VERSION    EDITOR          DATE            COMMENT
-#*********************************************************
-# R00        Eric Wang       10/22/2013      First Edition
-#*********************************************************
+*********************************************************
+Copyright @ 2015 EMC Corporation All Rights Reserved
+*********************************************************
+[Filename]: SelLogger.py
+[Author  ]: Eric Wang(eric.wang5@emc.com)
+[Purpose ]: Implementation for SEL log dump by SSH
+[Contains]: 
+         
+[History ]:
+*********************************************************
+ VERSION    EDITOR          DATE            COMMENT
+*********************************************************
+ R00        Eric Wang       10/22/2013      First Edition
+*********************************************************
 '''
 import time
 import os

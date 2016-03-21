@@ -1,7 +1,7 @@
 '''
 *********************************************************
- Copyright 2015 EMC Inc.
-
+Copyright @ 2015 EMC Corporation All Rights Reserved
+*********************************************************
 [Filename]: main.py
 [Author  ]: Bruce.Yang@emc.com
 [Purpose ]: 

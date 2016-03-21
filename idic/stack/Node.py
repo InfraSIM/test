@@ -2,11 +2,10 @@
 *********************************************************
 Copyright @ 2015 EMC Corporation All Rights Reserved
 *********************************************************
-'''
-'''
 Created on Dec 28, 2015
 
 @author: Forrest Gu
+*********************************************************
 '''
 from lib.Device import CDevice
 from idic.stack.BMC import CBMC

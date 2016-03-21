@@ -1,7 +1,7 @@
 '''
 *********************************************************
- Copyright 2013 EMC Inc.
-
+Copyright @ 2015 EMC Corporation All Rights Reserved
+*********************************************************
 [Filename]: Interface.py
 [Author  ]: Eric Wang
 [Purpose ]: Provide a base class for the interfaces

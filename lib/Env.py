@@ -1,7 +1,7 @@
 '''
 *********************************************************
- Copyright 2013 EMC Inc.
-
+Copyright @ 2015 EMC Corporation All Rights Reserved
+*********************************************************
 [Filename]: Env.py
 [Author  ]: Bruce.Yang@emc.com
 [Purpose ]: This file includes all environment variables, 

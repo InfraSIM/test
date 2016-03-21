@@ -2,11 +2,10 @@
 *********************************************************
 Copyright @ 2015 EMC Corporation All Rights Reserved
 *********************************************************
-'''
-'''
 Created on Dec 22, 2015
 
 @author: Tony Su
+*********************************************************
 '''
 from lib.Device import CDevice
 from idic.stack.PDU import CPDU

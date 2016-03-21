@@ -1,9 +1,12 @@
-﻿'''
-Copyright 2015 EMC Inc
+'''
+*********************************************************
+Copyright @ 2015 EMC Corporation All Rights Reserved
+*********************************************************
 This file is a part of puffer automation test framework
 [Filename]: NodeCollection.py
 [Author  ]: Forrest Gu(Forrest.Gu@emc.com)
 [Purpose ]: Define Monorail node collection abstraction
+*********************************************************
 '''
 
 import gevent
