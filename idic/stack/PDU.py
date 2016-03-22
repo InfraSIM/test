@@ -203,3 +203,84 @@ class CPDU(CDevice):
             self.log('INFO', "{} power off outlet {} is done".
                      format(self.name, str_outlet))
             return True
+
+    @with_connect('ssh_vpdu')
+    def verify_password_set(self):
+        '''
+        Verify pdu password set. password set, and password list commands are tested.
+        :return: return "True" if test pass, else return "False"
+        '''
+        #password list to check password of pdu 1 before password set
+        str_rsp_pwd_list = self.ssh_vpdu.send_command_wait_string(str_command = 'password list 1'+chr(13),
+                                                                  wait = '(vPDU)',
+                                                                  int_time_out =10, b_with_buff = False)
+
+        #get pattern line
+        pattern = r'\|\s*\d+\s*\|\s*\S+\s*\|'
+        m_pwd_list= re.search(pattern, str_rsp_pwd_list)
+
+        #If the pdu have at least 1 port set with password,
+        #test to set the first port's password, and then set it back to original
+        if m_pwd_list:
+
+            #split pattern line, get port and password
+            m_pwd_stripped_space = m_pwd_list.group(0).strip("|").replace(" ","")
+            port_pwd = re.split(r'\|\s*', m_pwd_stripped_space)
+            port = port_pwd[0]
+            pwd = port_pwd[1]
+
+            tmp_pwd = pwd+pwd
+
+            #password list to check password of pdu 1 before password set
+            self.ssh_vpdu.send_command_wait_string(str_command = 'password set 1 '+ port + ' ' + tmp_pwd + chr(13),
+                                                                      wait = '(vPDU)',
+                                                                      int_time_out =10, b_with_buff = False)
+            str_rsp_pwd_tmp_list = self.ssh_vpdu.send_command_wait_string(str_command = 'password list 1'+chr(13),
+                                                                  wait = '(vPDU)',
+                                                                  int_time_out =10, b_with_buff = False)
+
+            pattern = r'\|\s*'+port+'\s*\|\s*'+tmp_pwd+'\s*\|'
+            m_tmp_pwd= re.search(pattern, str_rsp_pwd_tmp_list)
+
+            if not m_tmp_pwd:
+                self.log('WARNING', 'Command "password set 1 ' + port + ' ' + tmp_pwd
+                         + '"  fails to change pdu port password. '
+                         'Password list before "password set" is:\n'+str_rsp_pwd_list
+                                +'\nPassword list after "password set" is:\n'+str_rsp_pwd_tmp_list + '. \nPDU is {} {}.'
+                         .format(self.get_ip(), self.get_name()))
+                return False
+            else:
+                #set password of password of the port of pdu 1 back to original.
+                self.ssh_vpdu.send_command_wait_string(str_command = 'password set 1 '+ port + ' ' + pwd + chr(13),
+                                                                          wait = '(vPDU)',
+                                                                          int_time_out =10, b_with_buff = False)
+                self.ssh_vpdu.send_command_wait_string(str_command = 'password list 1'+chr(13),
+                                                                      wait = '(vPDU)',
+                                                                      int_time_out =10, b_with_buff = False)
+                return True
+
+
+        #If the pdu doesn't have port set with password, set password for vpdu 1 port 1.
+        else:
+            port = '1'
+            pwd = 'idic'
+            #password list to check password of pdu 1 before password set
+            self.ssh_vpdu.send_command_wait_string(str_command = 'password set 1 ' + port + ' ' + pwd + chr(13),
+                                                                      wait = '(vPDU)',
+                                                                      int_time_out =10, b_with_buff = False)
+            str_rsp_pwd_tmp_list = self.ssh_vpdu.send_command_wait_string(str_command = 'password list 1'+chr(13),
+                                                                  wait = '(vPDU)',
+                                                                  int_time_out =10, b_with_buff = False)
+
+            pattern = r'\|\s*'+port+'\s*\|\s*'+pwd+'\s*\|'
+            m_tmp_pwd= re.search(pattern, str_rsp_pwd_tmp_list)
+
+            if not m_tmp_pwd:
+                self.log('WARNING', 'Command "password set 1 ' + port + ' ' + pwd
+                         + '"  fails to change pdu port password. '
+                         'Password list before "password set" is:\n'+str_rsp_pwd_list
+                         +'\nPassword list after "password set" is:\n'+str_rsp_pwd_tmp_list + '. \nPDU is {} {}.'
+                         .format(self.get_ip(), self.get_name()))
+                return False
+            else:
+                return True
