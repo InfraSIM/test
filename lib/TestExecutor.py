@@ -397,34 +397,8 @@ class CTestExecutor(CLogger):
 
         return
 
-    def add_enclosure(self, list_enclosure):
-        for each_enclosure_id in list_enclosure:
-            # this will check if the enclosure has already been tried by this enclosure
-            # TE will refuse those enclosures which cannot been updated to target FW set
-            if self.dict_enclosure_updated.has_key(each_enclosure_id):
-                if self.dict_enclosure_updated[each_enclosure_id] == -1:
-                    continue
-            if self.dict_enclosure_case.has_key(each_enclosure_id):
-                self.log('WARNING', 'TE(%s) get new enclosure(%s) which is already occupied by it' % \
-                         (self.task_id(), each_enclosure_id))
-                continue
-            self.log('INFO', 'Get new enclosure(%s)' % each_enclosure_id)
-            self.dict_enclosure_case[each_enclosure_id] = ''
-            obj_enclosure = Env.dict_ID_enclosure[each_enclosure_id]
-            if obj_enclosure.b_dual_sp:
-                self.b_has_dual_sp_enclosure = True
-
     def still_need_enclosure(self):
         return self.b_still_case_queued
-
-    def remove_enclosure(self, list_enclosure_id):
-        for str_enclosure_id in list_enclosure_id:
-            if self.list_enclosure_released.count(str_enclosure_id) > 0:
-                self.list_enclosure_released.remove(str_enclosure_id)
-                self.log('INFO', 'Enclosure(%s) removed from TE(%s)' % (str_enclosure_id, self.task_id()))
-            else:
-                self.log('ERROR', 'TE%s is trying to remove enclosure(%s) which is not occupied by it' % \
-                         (self.task_id(), str_enclosure_id))
 
     def copy_conf_to_workdirectory(self):
         '''
@@ -500,26 +474,6 @@ class CTestExecutor(CLogger):
                 each_xmlnode_case.find('status').text = STATUS_QUEUED
                 self.log('INFO', 'status of case %s set to \'queued\'' % each_xmlnode_case.find('script_name').text)
                 self.save_status()
-
-    def enclosures(self):
-        return self.dict_enclosure_case.keys()
-
-    def release_enclosure(self, str_enclosure_id):
-        self.log('INFO', 'Releasing enclosure(%s)' % str_enclosure_id)
-        if not self.dict_enclosure_case.has_key(str_enclosure_id):
-            self.log('WARNING', \
-                     'TE is trying to release enclosure(%s) which is either not occupied by the TE or already released from the TE' % str_enclosure_id)
-            return
-        if self.dict_enclosure_case[str_enclosure_id] != '':
-            self.log('WARNING', 'Enclosure(%s) cannot be released, it is still occupied by case(%s)' % (str_enclosure_id, \
-                                                                                                        self.dict_enclosure_case[str_enclosure_id]))
-            return
-        self.dict_enclosure_case.pop(str_enclosure_id)
-        self.list_enclosure_released.append(str_enclosure_id)
-        self.log('INFO', 'Enclosure(%s) released from TE(%s)' % (str_enclosure_id, self.task_id()))
-
-    def enclosure_released(self):
-        return self.list_enclosure_released
 
     def get_next_queued_case(self):
         xmlnode_next_queued_case = None

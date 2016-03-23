@@ -235,13 +235,11 @@ class CSelLogger(CLogger):
             
             # Dump SEL
             b_dump = False
-            ret = -1
-            lst_ret = []
             # Dump SEL by modified ipmitool with 10 retry
             for i in range(10):
                 self.list_current_dump_sel = []
-                cmd_raw_sel='sel raw %s' % self.sel_db_full_path
-                ret, lst_ret=iol.ipmitool_standard_cmd(cmd_raw_sel)
+                cmd_raw_sel = 'sel raw %s' % self.sel_db_full_path
+                ret, rsp = iol.ipmitool_standard_cmd(cmd_raw_sel)
                 if ret != 0:
                     # ipmi tool failed; just delay and retry.
                     time.sleep(1)
@@ -250,15 +248,15 @@ class CSelLogger(CLogger):
                     b_dump = True
                     break
             # Handle ipmitool response string
-            lst_ret = lst_ret.strip().splitlines()
+            lst_ret = rsp.strip().splitlines()
             for i in range(len(lst_ret)):
                 lst_ret[i] = lst_ret[i].strip().lower()
 
             self.list_current_dump_sel = lst_ret
             
             if not b_dump:
-                msg='Fail to dump SEL by ipmitool via IOL. '
-                msg+='SEL generated during this period will lose track!'
+                msg = 'Fail to dump SEL by ipmitool via IOL. '
+                msg += 'SEL generated during this period will lose track!'
                 self.log('WARNING', msg)
                 continue
 

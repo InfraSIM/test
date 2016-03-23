@@ -110,8 +110,6 @@ class CRelease():
                 self.__dict_image_not_ready = {}
             if self.int_release_check_style == 2:
                 self.fetch_images()
-        # Update status
-        self.check_status()
         
         return
 

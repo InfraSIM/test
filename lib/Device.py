@@ -50,6 +50,8 @@ class CDevice(CLogger):
         self.obj_rest_agent = None
         # for runtime
         self.obj_logger = None
+        self.on_data = {}
+        self.mon_data = {}
         # flags
         self.b_valid = True # this flag is set to True by default. It will be set to false
                             # when a error appeared, which means the device is not OK to

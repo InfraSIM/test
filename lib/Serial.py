@@ -309,8 +309,21 @@ class CSerial(CLogger, CLogTool):
         
     def set_port(self, int_port):
         # should consider that the ReadThread may be using the port if the port is connected.
-        self._int_port = int_port - 1
-        self.h_serial.set_port(self._int_port)
+        server_platform=platform.system()
+
+        # support cygwin;
+        # in cygwin, we should use device name instead of port number in int;
+        # in Windows and Linux, pyserial could get device by port number automatically;
+        # However in cygwin it will try to find /dev/com32 if we only provide 32.
+        if 'CYGWIN' in server_platform:
+            self.h_serial.port = '/dev/ttyS%d' % self._int_port
+        elif server_platform == 'Windows':
+            self.h_serial.port = self._int_port
+        elif server_platform == 'Linux':
+            self.h_serial.port = '/dev/ttyr%02x' % self._int_port
+        else:
+            raise Exception('Unsupported platform: %s' % server_platform)
+
         return 0
     
     def get_port(self):
