@@ -24,13 +24,9 @@ import datetime
 import time
 import smtplib
 from email.encoders import encode_base64
-# from email import Encoders
 from email.mime.text import MIMEText
-# from email.MIMEText import MIMEText
 from email.mime.base import MIMEBase
-# from email.MIMEBase import MIMEBase
 from email.mime.multipart import MIMEMultipart
-# from email.MIMEMultipart import MIMEMultipart
 from threading import Thread, Lock
 import email
 import shutil
