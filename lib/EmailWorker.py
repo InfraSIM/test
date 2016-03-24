@@ -4,7 +4,7 @@ Copyright @ 2015 EMC Corporation All Rights Reserved
 *********************************************************
 [Filename]: EmailWorker.py
 [Author  ]: Bruce.Yang@emc.com
-[Purpose ]: 
+[Purpose ]:
 [Contains]: 
 [History ]:
 **********************************************************
@@ -23,10 +23,10 @@ import os
 import datetime
 import time
 import smtplib
-from email import Encoders
-from email.MIMEText import MIMEText
-from email.MIMEBase import MIMEBase
-from email.MIMEMultipart import MIMEMultipart
+from email.encoders import encode_base64
+from email.mime.text import MIMEText
+from email.mime.base import MIMEBase
+from email.mime.multipart import MIMEMultipart
 from threading import Thread, Lock
 import email
 import shutil
@@ -219,7 +219,7 @@ class CEmail():
             filename = os.path.basename(str_attachment)
             att_build_result = MIMEBase('application','plain')
             att_build_result.set_payload(open(str_attachment,'rb').read())
-            Encoders.encode_base64(att_build_result)
+            encode_base64(att_build_result)
             att_build_result.add_header('Content-Disposition', 'attachment; filename=%s' %filename)
             outer.attach(att_build_result)
         

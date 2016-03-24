@@ -127,6 +127,7 @@ class CBaseCase(CLogger):
         self.monorail = None
         self.graph = CGraph()
         self.stack = None
+        self.data = {}
 
         # initialize test case interface
         self.obj_rest_agent = None
@@ -575,6 +576,9 @@ class CBaseCase(CLogger):
         *****************************************************************************************************
         '''
         return self.str_case_name
+
+    def test(self):
+        pass
 
     def config(self):
         pass

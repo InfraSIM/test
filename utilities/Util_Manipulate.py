@@ -188,7 +188,7 @@ def get_datastore():
 
 
 def get_vms(esxi_id):
-    vms = rest_api(target="esxi/{}/getvms".format(esxi_id))
+    vms = list(rest_api(target="esxi/{}/getvms".format(esxi_id)))
     for vm in vms:
         if "dhcp" in vm["name"].lower():
             vms.remove(vm)
