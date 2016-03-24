@@ -263,19 +263,19 @@ def vpdu_mapping(esxi_id, vpdu_list, node_list):
             if vpdu == vm["name"]:
                 vpdu_type = vm["name"].split('_')[1]
                 vpdu_admin_ip = vm["ip"][0]
-                vpdu_config_update(esxi_id, vpdu_admin_ip, vpdu_type)
                 try:
                     vpdu_control_ip = vm["ip"][1]
                 except IndexError:
                     print "There is no control network for the vPDU"
-                    vpdu_control_ip = "0.0.0.0"
+                    vpdu_control_ip = vpdu_admin_ip
+                vpdu_config_update(esxi_id, vpdu_control_ip, vpdu_type)
                 vpdu_dict[vpdu] = {}
                 vpdu_dict[vpdu]['admin'] = vpdu_admin_ip
                 vpdu_dict[vpdu]['control'] = vpdu_control_ip
-                GEN_CONF["vRacks"][-1]["vPDU"][i]["ip"] = vpdu_admin_ip
+                GEN_CONF["vRacks"][-1]["vPDU"][i]["ip"] = vpdu_control_ip
                 GEN_CONF["vRacks"][-1]["vPDU"][i]["outlet"] = {}
                 rest_api(target="esxi/{}/vpduhostadd".format(esxi_id),
-                         action="post", payload={"ip": vpdu_admin_ip})
+                         action="post", payload={"ip": vpdu_control_ip})
                 break
 
     # mapping the nodes
@@ -292,12 +292,12 @@ def vpdu_mapping(esxi_id, vpdu_list, node_list):
                 try:
                     node_name = node_list.pop(0)
                 except IndexError:
-                    vpdu_restart(esxi_id, vpdu_admin_ip)
+                    vpdu_restart(esxi_id, vpdu_control_ip)
                     return
                 pos_key = "{}.{}".format(i, j)
                 rest_api(target="esxi/{}/vpdupwdadd".format(esxi_id),
                          action="post",
-                         payload={"ip": vpdu_admin_ip,
+                         payload={"ip": vpdu_control_ip,
                                   "pdu": i, "port": j,
                                   "password": "idic"})
                 GEN_CONF["vRacks"][-1]["vPDU"][loop]["outlet"][pos_key] = "idic"
@@ -307,7 +307,7 @@ def vpdu_mapping(esxi_id, vpdu_list, node_list):
                         datastore = vm["datastore"]
                         rest_api(target="esxi/{}/vpdumapadd".format(esxi_id),
                                  action="post",
-                                 payload={"ip": vpdu_admin_ip, "dt": datastore,
+                                 payload={"ip": vpdu_control_ip, "dt": datastore,
                                           "name": node_name,
                                           "pdu": i, "port": j})
                         node_info = {}
@@ -320,7 +320,7 @@ def vpdu_mapping(esxi_id, vpdu_list, node_list):
                                             "username": "admin",
                                             "password": "admin"}
                         GEN_CONF["vRacks"][-1]["vNode"].append(node_info)
-        vpdu_restart(esxi_id, vpdu_admin_ip)
+        vpdu_restart(esxi_id, vpdu_control_ip)
 
 
 def deploy_vrack(vpdu_num, vswitch_num, vnodes):
