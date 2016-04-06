@@ -29,56 +29,68 @@ class T46139_idic_IPMISIMSensorAccessible(CBaseCase):
                 for item in rsp.split('\n'):
                     key = item.split(': ')[0].strip()
                     value = item.split(': ')[-1].strip()
-                    fru[key] = value
+                    fru[key] = value 
+
+
 
                 try:
                     #Try to find the corresponding sensor id by product name from JSON file.
-                    sensor_id = self.data[fru['Product Name']]
+                    sensor_dic = self.data[fru['Product Name']]
+                    sensor_id = sensor_dic.keys()[0]
+                    sensor_value_expected = sensor_dic[sensor_id]
 
                 except KeyError, e:
-                    #If product name missing, block this case.
-                    self.result(BLOCK,
-                    """
-                    KeyError: {}.
-                    Please supplement product name of node ({}) and the corresponding sensor id in {}.json.
-                    For more details, please read the document: https://infrasim.readthedocs.org/en/latest/
-                    """
-                                .format(e, e, self.__class__.__name__))
+                    #dell r630 product name value is empty which is expected,
+                    #so shouldn't block test when product name empty here.
+                    pass
+
+                sensor_value = 1000.00
+
+                bmc_ssh = bmc_obj.ssh_ipmi_sim
+                str_rsp = bmc_ssh.send_command_wait_string(str_command = 'sensor'+chr(13), wait = 'IPMI_SIM',
+                                                           int_time_out =30, b_with_buff = False)
+                if re.search("Available sensor commands", str_rsp) == None:
+                    #If sensor command not available
+                    self.result(FAIL, 'BMC IPMI_SIM sensor command of a node not accessible. Rack is {}, '
+                                      'Node is {}, BMC IP is: {}'.
+                                format(obj_rack.get_name(),obj_node.get_name(), bmc_obj.get_ip()))
+
                 else:
 
-                    sensor_value = 1000.00
+                    str_rsp = bmc_ssh.send_command_wait_string(str_command = 'sensor info'+chr(13),
+                                                               wait = 'IPMI_SIM',int_time_out =3, b_with_buff = False)
+                    self.log('INFO', 'Sensor info of node: {}'.format(str_rsp))
 
-                    bmc_ssh = bmc_obj.ssh_ipmi_sim
-                    str_rsp = bmc_ssh.send_command_wait_string(str_command = 'sensor'+chr(13), wait = 'IPMI_SIM',int_time_out =3, b_with_buff = False)
+                    str_rsp = bmc_ssh.send_command_wait_string(str_command = 'sensor value get {} {}'
+                                                               .format(sensor_id, chr(13)), wait = 'IPMI_SIM',
+                                                               int_time_out =3, b_with_buff = False)
+                    self.log('INFO', 'Sensor (id:{}) value of node: {}'.format(sensor_id, str_rsp))
 
-                    if re.search("Available sensor commands", str_rsp) == None:
-                        #If sensor command not available
-                        self.result(FAIL, 'BMC IPMI_SIM sensor command of a node not accessible. Rack is {}, Node is {}, BMC IP is: {}'.
-                                    format(obj_rack.get_name(),obj_node.get_name(), bmc_obj.get_ip()))
+                    bmc_ssh.send_command_wait_string(str_command = 'sensor value set {} {} {}'
+                                                     .format(sensor_id, sensor_value, chr(13)),
+                                                     wait = 'IPMI_SIM',int_time_out =3, b_with_buff = False)
+                    self.log('INFO', 'Sensor (id:{}) value of node set to: {}'.format(sensor_id, sensor_value))
+
+                    str_rsp = bmc_ssh.send_command_wait_string(str_command = 'sensor value get {} {}'
+                                                               .format(sensor_id, chr(13)), wait = 'IPMI_SIM',
+                                                               int_time_out =3, b_with_buff = False)
+
+                    if re.search(str(sensor_value_expected), str_rsp) != None:
+                       self.log('INFO', 'Sensor (id:{}) value of node set to: {} succeed!'
+                                .format(sensor_id, sensor_value))
 
                     else:
+                        self.result(FAIL,
+                                    'Failed to set up BMC sensor (id:{}) value through IPMI_SIM. '
+                                    'Rack is {}, Node is {}, BMC IP is: {}'.
+                                format(sensor_id, obj_rack.get_name(),obj_node.get_name(), bmc_obj.get_ip()))
 
-                        str_rsp = bmc_ssh.send_command_wait_string(str_command = 'sensor info'+chr(13), wait = 'IPMI_SIM',int_time_out =3, b_with_buff = False)
-                        self.log('INFO', 'Sensor info of node: {}'.format(str_rsp))
 
-                        str_rsp = bmc_ssh.send_command_wait_string(str_command = 'sensor value get {} {}'.format(sensor_id, chr(13)), wait = 'IPMI_SIM',int_time_out =3, b_with_buff = False)
-                        self.log('INFO', 'Sensor (id:{}) value of node: {}'.format(sensor_id, str_rsp))
-
-                        bmc_ssh.send_command_wait_string(str_command = 'sensor value set {} {} {}'.format(sensor_id, sensor_value, chr(13)), wait = 'IPMI_SIM',int_time_out =3, b_with_buff = False)
-                        self.log('INFO', 'Sensor (id:{}) value of node set to: {}'.format(sensor_id, sensor_value))
-
-                        str_rsp = bmc_ssh.send_command_wait_string(str_command = 'sensor value get {} {}'.format(sensor_id, chr(13)), wait = 'IPMI_SIM',int_time_out =3, b_with_buff = False)
-
-                        if re.search(str(sensor_value), str_rsp) != None:
-                            self.log('INFO', 'Sensor (id:{}) value of node set to: {} succeed!'.format(sensor_id, sensor_value))
-
-                        else:
-                            self.result(FAIL, 'Failed to set up BMC sensor (id:{}) value through IPMI_SIM. Rack is {}, Node is {}, BMC IP is: {}'.
-                                    format(sensor_id, obj_rack.get_name(),obj_node.get_name(), bmc_obj.get_ip()))
 
                 time.sleep(1)
 
     def deconfig(self):
-
+        # To do: Case specific deconfig
         CBaseCase.deconfig(self)
+
 
