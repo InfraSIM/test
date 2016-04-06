@@ -30,8 +30,8 @@ class T33274_idic_vPDUPwdExpire(CBaseCase):
                     pdu_pwd = power_unit[0].get_outlet_password(power_unit[1])
                     power_unit[0].match_outlet_password(power_unit[1], pdu_pwd)
 
-        self.log('INFO', 'Wait 120s for outlet password to be expired ...')
-        time.sleep(121)
+        self.log('INFO', 'Wait 300s for outlet password to be expired ...')
+        time.sleep(301)
 
         for obj_rack in self.stack.get_rack_list():
             for obj_node in obj_rack.get_node_list():
