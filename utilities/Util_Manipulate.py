@@ -43,6 +43,7 @@ PDU_CONFIG = {
         "snmpdata": "sentry"
     }
 }
+SHOULD_DEL = True
 
 
 def exit_func(e):
@@ -342,7 +343,7 @@ def deploy_vrack(vpdu_num, vswitch_num, vnodes):
         GEN_CONF["vRacks"][-1]["vNode"] = []
 
         hypervisor_id = hypervisor["id"]
-        if vnodes:
+        if SHOULD_DEL:
             print "WARNING: delete all the nodes in ESXi {}".format(hypervisor_id)
             delete_all_vms(hypervisor_id)
 
