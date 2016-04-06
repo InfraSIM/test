@@ -12,6 +12,7 @@ from lib.Device import CDevice
 from lib.SNMP import CSNMP
 from lib.SSH import CSSH
 from lib.Apps import with_connect
+import re
 
 OID_CHECK_LIST = {
     "INV_PROD_FORMAT_VER": (1, 3, 6, 1, 4, 1, 3711, 24, 1, 1, 99, 2, 0),
@@ -26,6 +27,7 @@ OID_PDU_OUT_ON_ROOT = (1, 3, 6, 1, 4, 1, 3711, 24, 1, 1, 7, 2, 3, 1, 5)
 OID_PDU_OUT_PWD_ROOT = (1, 3, 6, 1, 4, 1, 3711, 24, 1, 1, 7, 2, 3, 1, 6)
 INT_PDU_OUT_ON = 1
 INT_PDU_OUT_OFF = 2
+
 
 class CPDU(CDevice):
     def __init__(self, dict_pdu):
@@ -173,9 +175,9 @@ class CPDU(CDevice):
         err_indicator, err_status, err_index, var_binds = self.snmp.set(oid, 'Integer', INT_PDU_OUT_ON)
         if err_indicator or err_status or err_index:
             self.log('ERROR', "{} (IP: {}) fail to power on outlet {}:\n"
-                             "Error indicator: {}\n"
-                             "Error status: {}\n"
-                             "Error index: {}".
+                              "Error indicator: {}\n"
+                              "Error status: {}\n"
+                              "Error index: {}".
                      format(self.name, self.ip, str_outlet,
                             str(err_indicator), err_status, err_index))
             return False
@@ -193,9 +195,9 @@ class CPDU(CDevice):
         err_indicator, err_status, err_index, var_binds = self.snmp.set(oid, 'Integer', INT_PDU_OUT_OFF)
         if err_indicator or err_status or err_index:
             self.log('ERROR', "{} (IP: {}) fail to power off outlet {}:\n"
-                             "Error indicator: {}\n"
-                             "Error status: {}\n"
-                             "Error index: {}".
+                              "Error indicator: {}\n"
+                              "Error status: {}\n"
+                              "Error index: {}".
                      format(self.name, self.ip, str_outlet,
                             str(err_indicator), err_status, err_index))
             return False
@@ -210,77 +212,87 @@ class CPDU(CDevice):
         Verify pdu password set. password set, and password list commands are tested.
         :return: return "True" if test pass, else return "False"
         '''
-        #password list to check password of pdu 1 before password set
-        str_rsp_pwd_list = self.ssh_vpdu.send_command_wait_string(str_command = 'password list 1'+chr(13),
-                                                                  wait = '(vPDU)',
-                                                                  int_time_out =10, b_with_buff = False)
+        # password list to check password of pdu 1 before password set
+        str_rsp_pwd_list = self.ssh_vpdu.send_command_wait_string(str_command='password list 1'+chr(13),
+                                                                  wait='(vPDU)',
+                                                                  int_time_out=10,
+                                                                  b_with_buff=False)
 
-        #get pattern line
+        # get pattern line
         pattern = r'\|\s*\d+\s*\|\s*\S+\s*\|'
-        m_pwd_list= re.search(pattern, str_rsp_pwd_list)
+        m_pwd_list = re.search(pattern, str_rsp_pwd_list)
 
-        #If the pdu have at least 1 port set with password,
-        #test to set the first port's password, and then set it back to original
+        # If the pdu have at least 1 port set with password,
+        # test to set the first port's password, and then set it back to original
         if m_pwd_list:
 
-            #split pattern line, get port and password
-            m_pwd_stripped_space = m_pwd_list.group(0).strip("|").replace(" ","")
+            # split pattern line, get port and password
+            m_pwd_stripped_space = m_pwd_list.group(0).strip("|").replace(" ", "")
             port_pwd = re.split(r'\|\s*', m_pwd_stripped_space)
             port = port_pwd[0]
             pwd = port_pwd[1]
 
             tmp_pwd = pwd+pwd
 
-            #password list to check password of pdu 1 before password set
-            self.ssh_vpdu.send_command_wait_string(str_command = 'password set 1 '+ port + ' ' + tmp_pwd + chr(13),
-                                                                      wait = '(vPDU)',
-                                                                      int_time_out =10, b_with_buff = False)
-            str_rsp_pwd_tmp_list = self.ssh_vpdu.send_command_wait_string(str_command = 'password list 1'+chr(13),
-                                                                  wait = '(vPDU)',
-                                                                  int_time_out =10, b_with_buff = False)
+            # password list to check password of pdu 1 before password set
+            self.ssh_vpdu.send_command_wait_string(str_command='password set 1 ' + port + ' ' + tmp_pwd + chr(13),
+                                                   wait='(vPDU)',
+                                                   int_time_out=10,
+                                                   b_with_buff=False)
+            str_rsp_pwd_tmp_list = self.ssh_vpdu.send_command_wait_string(str_command='password list 1'+chr(13),
+                                                                          wait='(vPDU)',
+                                                                          int_time_out=10,
+                                                                          b_with_buff=False)
 
             pattern = r'\|\s*'+port+'\s*\|\s*'+tmp_pwd+'\s*\|'
-            m_tmp_pwd= re.search(pattern, str_rsp_pwd_tmp_list)
+            m_tmp_pwd = re.search(pattern, str_rsp_pwd_tmp_list)
 
             if not m_tmp_pwd:
-                self.log('WARNING', 'Command "password set 1 ' + port + ' ' + tmp_pwd
-                         + '"  fails to change pdu port password. '
-                         'Password list before "password set" is:\n'+str_rsp_pwd_list
-                                +'\nPassword list after "password set" is:\n'+str_rsp_pwd_tmp_list + '. \nPDU is {} {}.'
-                         .format(self.get_ip(), self.get_name()))
+                self.log('WARNING', 'Command "password set 1 {} {}" fails to change pdu port password. '
+                                    'Password list before "password set" is"\n'
+                                    '{}\n'
+                                    'Password list after "password set" is:\n'
+                                    '{}\n'
+                                    'PDU is {} {}'.
+                         format(port, tmp_pwd, str_rsp_pwd_list, str_rsp_pwd_tmp_list, self.get_ip(), self.get_name()))
                 return False
             else:
-                #set password of password of the port of pdu 1 back to original.
-                self.ssh_vpdu.send_command_wait_string(str_command = 'password set 1 '+ port + ' ' + pwd + chr(13),
-                                                                          wait = '(vPDU)',
-                                                                          int_time_out =10, b_with_buff = False)
-                self.ssh_vpdu.send_command_wait_string(str_command = 'password list 1'+chr(13),
-                                                                      wait = '(vPDU)',
-                                                                      int_time_out =10, b_with_buff = False)
+                # set password of password of the port of pdu 1 back to original.
+                self.ssh_vpdu.send_command_wait_string(str_command='password set 1 ' + port + ' ' + pwd + chr(13),
+                                                       wait='(vPDU)',
+                                                       int_time_out=10,
+                                                       b_with_buff=False)
+                self.ssh_vpdu.send_command_wait_string(str_command='password list 1'+chr(13),
+                                                       wait='(vPDU)',
+                                                       int_time_out=10,
+                                                       b_with_buff=False)
                 return True
 
-
-        #If the pdu doesn't have port set with password, set password for vpdu 1 port 1.
+        # If the pdu doesn't have port set with password, set password for vpdu 1 port 1.
         else:
             port = '1'
             pwd = 'idic'
-            #password list to check password of pdu 1 before password set
-            self.ssh_vpdu.send_command_wait_string(str_command = 'password set 1 ' + port + ' ' + pwd + chr(13),
-                                                                      wait = '(vPDU)',
-                                                                      int_time_out =10, b_with_buff = False)
-            str_rsp_pwd_tmp_list = self.ssh_vpdu.send_command_wait_string(str_command = 'password list 1'+chr(13),
-                                                                  wait = '(vPDU)',
-                                                                  int_time_out =10, b_with_buff = False)
+            # password list to check password of pdu 1 before password set
+            self.ssh_vpdu.send_command_wait_string(str_command='password set 1 ' + port + ' ' + pwd + chr(13),
+                                                   wait='(vPDU)',
+                                                   int_time_out=10,
+                                                   b_with_buff = False)
+            str_rsp_pwd_tmp_list = self.ssh_vpdu.send_command_wait_string(str_command='password list 1'+chr(13),
+                                                                          wait='(vPDU)',
+                                                                          int_time_out=10,
+                                                                          b_with_buff=False)
 
             pattern = r'\|\s*'+port+'\s*\|\s*'+pwd+'\s*\|'
-            m_tmp_pwd= re.search(pattern, str_rsp_pwd_tmp_list)
+            m_tmp_pwd = re.search(pattern, str_rsp_pwd_tmp_list)
 
             if not m_tmp_pwd:
-                self.log('WARNING', 'Command "password set 1 ' + port + ' ' + pwd
-                         + '"  fails to change pdu port password. '
-                         'Password list before "password set" is:\n'+str_rsp_pwd_list
-                         +'\nPassword list after "password set" is:\n'+str_rsp_pwd_tmp_list + '. \nPDU is {} {}.'
-                         .format(self.get_ip(), self.get_name()))
+                self.log('WARNING', 'Command "password set 1 {} {}" fails to change pdu port password. '
+                                    'Password list before "password set" is"\n'
+                                    '{}\n'
+                                    'Password list after "password set" is:\n'
+                                    '{}\n'
+                                    'PDU is {} {}'.
+                         format(port, pwd, str_rsp_pwd_list, str_rsp_pwd_tmp_list, self.get_ip(), self.get_name()))
                 return False
             else:
                 return True
