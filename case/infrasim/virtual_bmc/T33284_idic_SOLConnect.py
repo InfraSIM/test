@@ -24,6 +24,10 @@ class T33284_idic_SOLConnect(CBaseCase):
             obj_bmc = obj_node.get_bmc()
             self.log('INFO', 'Activate SOL on node {} ...'.format(obj_node.get_name()))
             obj_bmc.sol_activate(log_dir=self.str_work_directory)
+
+            self.log('INFO', 'Power cycle node {} then check SOL ...'.format(obj_node.get_name()))
+            obj_bmc.ipmi.ipmitool_standard_cmd('chassis power cycle')
+            
             self.log('INFO', 'Verify if SOL on node {} is alive in 60s ...'.format(obj_node.get_name()))
             if obj_bmc.sol_is_alive():
                 self.log('INFO', 'Node {} SOL to virtual host is alive'.format(obj_node.get_name()))
@@ -33,4 +37,6 @@ class T33284_idic_SOLConnect(CBaseCase):
     
     def deconfig(self):
         # To do: Case specific deconfig
+        self.log('INFO', 'Wait 30s for all nodes to boot ...')
+        time.sleep(30)
         CBaseCase.deconfig(self)
