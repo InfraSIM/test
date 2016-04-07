@@ -13,11 +13,26 @@ import json
 import re
 import time
 import os
+import argparse
+
 sys.path.append("../")
 from lib.restapi import APIClient
 
-CONF_FILE = sys.argv[1]
-OVA_FILE = sys.argv[2:]
+# set the args
+parser = argparse.ArgumentParser(description="Set the deploy parameters")
+parser.add_argument("-f", dest="conf_file", default="stack_requirement.json",
+                    help="Set the config file (default: stack_requirement.json)")
+parser.add_argument("-l", dest="ova_file", default=[],
+                    help="Set the ova list (default: [])")
+parser.add_argument("-d", dest="delay_time", type=int, default=20,
+                    help="Set the duration time (default: 20)")
+parser.add_argument("-n", dest="nodes_network", default="VM_Network",
+                    help="Set the nodes network (default: VM_Network)")
+args = parser.parse_args()
+CONF_FILE = str(args.conf_file)
+OVA_FILE = str(args.ova_file)
+DELAY_TIME = int(args.delay_time)
+NODES_NETWORK = str(args.nodes_network)
 CONF_DATA = None
 VRACKSYSTEM_INFO = {}
 URI_PRE = None
@@ -30,7 +45,6 @@ GEN_CONF = {
 }
 NODES_TYPE = ["quanta_t41", "quanta_d51", "s2600kp",
               "dell_c6320", "dell_r630", "vnode"]
-NODES_NETWORK = "VM Network"
 PDU_CONFIG = {
     "hawk": {
         "name": "hawk",
@@ -101,8 +115,9 @@ def rest_api(target=None, action="get", payload=None, expect_status=200):
         error_msg = "can't get the response correctly by issuing the api: \n" \
                     "[{}]{} " \
                     "HTTP status: {}\n" \
-                    "Payload:\n{}".\
-            format(action, url, response["status"], json.dumps(payload, indent=4))
+                    "Payload:\n{}". \
+            format(action, url, response["status"],
+                   json.dumps(payload, indent=4))
         exit_func(error_msg)
 
     try:
@@ -142,7 +157,7 @@ def get_hypervisor():
         hypervisor_ip = hypervisor_credential[2]
 
         GEN_CONF["available_HyperVisor"].append(
-            {"name": "hyper"+hypervisor_name[1],
+            {"name": "hyper" + hypervisor_name[1],
              "type": hypervisor_name[0],
              "ip": hypervisor_ip,
              "username": hypervisor_username,
@@ -153,7 +168,7 @@ def get_hypervisor():
 
         if esxi:
             HYPERVISORS.append(esxi)
-            esxi["name"] = "hyper"+hypervisor_name[1]
+            esxi["name"] = "hyper" + hypervisor_name[1]
         else:
             payload = {"esxiIP": hypervisor_ip,
                        "username": hypervisor_username,
@@ -165,7 +180,7 @@ def get_hypervisor():
             esxi = get_expect_esxi(esxi_data, hypervisor_ip)
             if esxi:
                 HYPERVISORS.append(esxi)
-                esxi["name"] = "hyper"+hypervisor_name[1]
+                esxi["name"] = "hyper" + hypervisor_name[1]
             else:
                 error_msg = "can't get the added esxi by issuing the api"
                 exit_func(error_msg)
@@ -182,7 +197,7 @@ def get_datastore():
         datastores = rest_api(target="esxi/{}/datastores".
                               format(str(hypervisor_id)))
         hypervisor["datastores"] = datastores
-        print "datastores {} are found for hypervisor {}".\
+        print "datastores {} are found for hypervisor {}". \
             format(datastores, hypervisor_id)
     print "datastores are added for each hypervisor:"
     print json.dumps(HYPERVISORS, indent=4)
@@ -215,7 +230,7 @@ def deploy_node(esxi_id, datastore, power, nodetype, ova, network):
                "count": "1",
                "nodetype": nodetype,
                "controlnetwork": network,
-               "duration": 0
+               "duration": DELAY_TIME
                }
     if ova:
         payload["ova"] = ova
@@ -234,13 +249,14 @@ def vpdu_restart(esxi_id, vpdu_ip):
     rest_api(target="esxi/{}/vpdurestart".format(esxi_id),
              action="post", payload={"ip": vpdu_ip})
 
+
 def vpdu_config_update(esxi_id, vpdu_ip, vpdu_type):
     print "start to update the vpdu config info"
     if vpdu_type not in PDU_CONFIG:
         exit_func("type of vpdu {} is not supported".format(vpdu_type))
     config_info = PDU_CONFIG[vpdu_type]
     rest_api(target="esxi/{}/vpdusetpduinfo".format(esxi_id),
-             action="post", 
+             action="post",
              payload={
                  "ip": vpdu_ip, "name": config_info["name"],
                  "database": config_info["database"],
@@ -281,7 +297,7 @@ def vpdu_mapping(esxi_id, vpdu_list, node_list):
 
     # mapping the nodes
     node_count = len(node_list)
-    loops = (node_count+143)/144
+    loops = (node_count + 143) / 144
 
     for loop in range(loops):
         vpdu = vpdu_list[loop]
@@ -308,18 +324,20 @@ def vpdu_mapping(esxi_id, vpdu_list, node_list):
                         datastore = vm["datastore"]
                         rest_api(target="esxi/{}/vpdumapadd".format(esxi_id),
                                  action="post",
-                                 payload={"ip": vpdu_control_ip, "dt": datastore,
+                                 payload={"ip": vpdu_control_ip,
+                                          "dt": datastore,
                                           "name": node_name,
                                           "pdu": i, "port": j})
                         node_info = {}
                         node_info["name"] = node_name
                         node_info["datastore"] = datastore
                         node_info["power"] = [{"vPDU": vpdu,
-                                              "outlet": pos_key}]
+                                               "outlet": pos_key}]
                         node_info["network"] = []
-                        node_info["bmc"] = {"ip": vm["ip"][0] if vm["ip"] else "",
-                                            "username": "admin",
-                                            "password": "admin"}
+                        node_info["bmc"] = {
+                            "ip": vm["ip"][0] if vm["ip"] else "",
+                            "username": "admin",
+                            "password": "admin"}
                         GEN_CONF["vRacks"][-1]["vNode"].append(node_info)
         vpdu_restart(esxi_id, vpdu_control_ip)
 
@@ -331,7 +349,7 @@ def deploy_vrack(vpdu_num, vswitch_num, vnodes):
     node_list = []
     for vnode in vnodes:
         total_nodes += vnodes[vnode]
-    if vpdu_num and (total_nodes+143)/144 > vpdu_num:
+    if vpdu_num and (total_nodes + 143) / 144 > vpdu_num:
         error_msg = "ERROR: {} vpdu(s) to be deployed are not enough to " \
                     "manage {} nodes".format(vpdu_num, total_nodes)
         return error_msg
@@ -344,7 +362,8 @@ def deploy_vrack(vpdu_num, vswitch_num, vnodes):
 
         hypervisor_id = hypervisor["id"]
         if SHOULD_DEL:
-            print "WARNING: delete all the nodes in ESXi {}".format(hypervisor_id)
+            print "WARNING: delete all the nodes in ESXi {}".format(
+                hypervisor_id)
             delete_all_vms(hypervisor_id)
 
         print '\033[93m> deploy vpdu ...\033[0m'
@@ -373,9 +392,8 @@ def deploy_vrack(vpdu_num, vswitch_num, vnodes):
             for i in range(vpdu_num):
                 pdu_name = deploy_node(hypervisor_id,
                                        hypervisor["datastores"][0],
-                                       "on", "pdu", pdu_ova,0)
+                                       "on", "pdu", pdu_ova, 0)
                 pdu_list.append(pdu_name)
-                time.sleep(10)
                 GEN_CONF["vRacks"][-1]["vPDU"].append(
                     {"name": pdu_name,
                      "datastore": hypervisor["datastores"][0],
@@ -386,14 +404,14 @@ def deploy_vrack(vpdu_num, vswitch_num, vnodes):
         if vswitch_num != 0:
             pass
 
-
         if not vnodes:
             # for CI
             print "INFO: the default number for CI test is 2"
             vnode = {}
             for node_ova in OVA_FILE:
                 try:
-                    node_type = re.match("vbmc_(.*)_\w+\.ova", node_ova).group(1)
+                    node_type = re.match("vbmc_(.*)_\w+\.ova", node_ova).group(
+                        1)
                     vnodes[node_type] = 2
                 except AttributeError:
                     error_msg = "ERROR: the ova file {} is not " \
@@ -417,12 +435,14 @@ def deploy_vrack(vpdu_num, vswitch_num, vnodes):
                                          action="post",
                                          payload={"type": node_type})
             if not download_node_ova:
-                error_msg = "ERROR: there is no downloaded {} ova".format(node_type)
+                error_msg = "ERROR: there is no downloaded {} ova".format(
+                    node_type)
                 exit_func(error_msg)
 
             for node_ova in OVA_FILE:
                 if node_type in node_ova:
-                    print "ova is provided by user for {} deployment".format(node_type)
+                    print "ova is provided by user for {} deployment".format(
+                        node_type)
                     break
             else:
                 node_ova = None
@@ -439,8 +459,6 @@ def deploy_vrack(vpdu_num, vswitch_num, vnodes):
                                         "on", node_type, node_ova,
                                         NODES_NETWORK)
                 node_list.append(node_name)
-                print 'sleep 15s ...'
-                time.sleep(10)
             del vnodes[node_type]
         print node_list
         time.sleep(30)
@@ -491,10 +509,12 @@ def set_conf():
         str_path = "../../test.json"
         with open("../../test.json", "w") as result_conf:
             result_conf.write(json.dumps(GEN_CONF, indent=4))
-        print 'Configuration can be found at {}'.format(os.path.abspath(str_path))
+        print 'Configuration can be found at {}'.format(
+            os.path.abspath(str_path))
     except IOError:
         error_msg = "ERROR: can't generate the configure file"
         exit_func(error_msg)
+
 
 if __name__ == '__main__':
     conf_parse()
