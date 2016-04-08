@@ -36,8 +36,8 @@ class T33273_idic_vPDUValidPassword(CBaseCase):
                         self.log('INFO', 'Node succeed in powering off with correct PDU outlet password. Node is {}, outlet is {}'.
                                  format(obj_node.get_name(),power_unit[1]))
 
-        self.log('INFO', 'Wait 5 seconds for power off ...')
-        time.sleep(5)
+                    self.log('INFO', 'Wait 10 seconds for power off ...')
+                    time.sleep(10)
 
         #power on
         for obj_rack in self.stack.get_rack_list():
@@ -50,8 +50,8 @@ class T33273_idic_vPDUValidPassword(CBaseCase):
                         self.log('INFO', 'Node succeed in powering on with correct PDU outlet password. Node is {}, outlet is {}'.
                                  format(obj_node.get_name(),power_unit[1]))
 
-        self.log('INFO', 'Wait 5 seconds for power on ...')
-        time.sleep(5)
+                    self.log('INFO', 'Wait 10 seconds for power on ...')
+                    time.sleep(10)
         for obj_rack in self.stack.get_rack_list():
             obj_hyper = self.stack.hypervisors[obj_rack.get_hypervisor()]
             for obj_node in obj_rack.get_node_list():
