@@ -35,23 +35,29 @@ class T33274_idic_vPDUPwdExpire(CBaseCase):
 
         for obj_rack in self.stack.get_rack_list():
             for obj_node in obj_rack.get_node_list():
-                #power off
+                # power off
                 for power_unit in obj_node.power:
                     is_off  = power_unit[0].power_off(power_unit[1])
-                    if True == is_off:
-                        self.result(FAIL, 'PDU password didn\'t expire after 2 minutes. Node can power off after PDU outlet password been matched 2 minutes ago. Node is {}, outlet is {}.'.
-                                format(obj_node.get_name(),power_unit[1]))
+                    if is_off:
+                        self.result(FAIL, 'PDU password didn\'t expire after 2 minutes. '
+                                          'Node can power off after PDU outlet password '
+                                          'been matched 2 minutes ago. Node is {}, '
+                                          'outlet is {}.'.
+                                    format(obj_node.get_name(),power_unit[1]))
 
-        self.log('INFO', 'Wait 5 seconds for possible power off ...')
-        time.sleep(5)
+        self.log('INFO', 'Wait 10 seconds for possible power off ...')
+        time.sleep(10)
         for obj_rack in self.stack.get_rack_list():
             for obj_node in obj_rack.get_node_list():
-                #power on
+                # power on
                 for power_unit in obj_node.power:
                     is_on = power_unit[0].power_on(power_unit[1])
-                    if True == is_on:
-                        self.result(FAIL, 'PDU password didn\'t expire after 2 minutes. Node can be power on after PDU outlet password been matched 2 minutes ago. Node is {}, outlet is {}.'.
-                                format(obj_node.get_name(),power_unit[1]))
+                    if is_on:
+                        self.result(FAIL, 'PDU password didn\'t expire after 2 minutes. '
+                                          'Node can be power on after PDU outlet password '
+                                          'been matched 2 minutes ago. Node is {}, '
+                                          'outlet is {}.'.
+                                    format(obj_node.get_name(), power_unit[1]))
 
     def deconfig(self):
         # To do: Case specific deconfig
