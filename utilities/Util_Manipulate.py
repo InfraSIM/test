@@ -21,18 +21,19 @@ from lib.restapi import APIClient
 # set the args
 parser = argparse.ArgumentParser(description="Set the deploy parameters")
 parser.add_argument("-f", dest="conf_file", default="stack_requirement.json",
+                    nargs=1,
                     help="Set the config file (default: stack_requirement.json)")
-parser.add_argument("-l", dest="ova_file", default=[],
+parser.add_argument("-l", dest="ova_file", default=[], nargs='+',
                     help="Set the ova list (default: [])")
-parser.add_argument("-d", dest="delay_time", type=int, default=20,
-                    help="Set the duration time (default: 20)")
-parser.add_argument("-n", dest="nodes_network", default="VM_Network",
-                    help="Set the nodes network (default: VM_Network)")
+parser.add_argument("-d", dest="delay_time", type=int, default=20, nargs=1,
+                    help="Set the duration time (default: 20)", )
+parser.add_argument("-n", dest="nodes_network", default="VM Network", nargs=1,
+                    help="Set the nodes network (default: VM Network)")
 args = parser.parse_args()
-CONF_FILE = str(args.conf_file)
-OVA_FILE = str(args.ova_file)
-DELAY_TIME = int(args.delay_time)
-NODES_NETWORK = str(args.nodes_network)
+CONF_FILE = args.conf_file
+OVA_FILE = args.ova_file
+DELAY_TIME = args.delay_time
+NODES_NETWORK = args.nodes_network
 CONF_DATA = None
 VRACKSYSTEM_INFO = {}
 URI_PRE = None
@@ -264,7 +265,7 @@ def vpdu_config_update(esxi_id, vpdu_ip, vpdu_type):
              })
 
 
-def vpdu_mapping(esxi_id, vpdu_list, node_list):
+def vpdu_mapping(esxi_id, esxi_name, vpdu_list, node_list):
     if not vpdu_list:
         print "there is no vpdu, no need to map"
         return
@@ -338,6 +339,7 @@ def vpdu_mapping(esxi_id, vpdu_list, node_list):
                             "ip": vm["ip"][0] if vm["ip"] else "",
                             "username": "admin",
                             "password": "admin"}
+                        node_info["hypervisor"] = esxi_name
                         GEN_CONF["vRacks"][-1]["vNode"].append(node_info)
         vpdu_restart(esxi_id, vpdu_control_ip)
 
@@ -395,7 +397,8 @@ def deploy_vrack(vpdu_num, vswitch_num, vnodes):
                                        "on", "pdu", pdu_ova, 0)
                 pdu_list.append(pdu_name)
                 GEN_CONF["vRacks"][-1]["vPDU"].append(
-                    {"name": pdu_name,
+                    {"hypervisor": hypervisor["name"],
+                     "name": pdu_name,
                      "datastore": hypervisor["datastores"][0],
                      "community": "ipia"}
                 )
@@ -467,7 +470,7 @@ def deploy_vrack(vpdu_num, vswitch_num, vnodes):
                         "{}".format(vnodes.keys())
             exit_func(error_msg)
         time.sleep(30)
-        vpdu_mapping(hypervisor_id, pdu_list, node_list)
+        vpdu_mapping(hypervisor_id, hypervisor["name"], pdu_list, node_list)
         vms = get_vms(hypervisor_id)
         for vm in vms:
             vm_name = vm["name"]
