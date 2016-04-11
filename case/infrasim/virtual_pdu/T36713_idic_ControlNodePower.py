@@ -35,8 +35,8 @@ class T36713_idic_ControlNodePower(CBaseCase):
 
                 # Power off
                 obj_node.power_off()
-                self.log('INFO', 'Wait 5 seconds for power off ...')
-                time.sleep(5)
+                self.log('INFO', 'Wait 10 seconds for power off ...')
+                time.sleep(10)
                 str_power_status = self.stack.rest_get_node_power_status(
                     obj_hyper.get_ip(),
                     obj_node.get_name()
@@ -49,8 +49,8 @@ class T36713_idic_ControlNodePower(CBaseCase):
 
                 # Power on
                 obj_node.power_on()
-                self.log('INFO', 'Wait 5 seconds for power on ...')
-                time.sleep(5)
+                self.log('INFO', 'Wait 10 seconds for power on ...')
+                time.sleep(10)
                 str_power_status = self.stack.rest_get_node_power_status(
                     obj_hyper.get_ip(),
                     obj_node.get_name()
@@ -63,6 +63,4 @@ class T36713_idic_ControlNodePower(CBaseCase):
     
     def deconfig(self):
         # To do: Case specific deconfig
-        self.log('INFO', 'Wait 30s for all nodes to boot ...')
-        time.sleep(30)
         CBaseCase.deconfig(self)

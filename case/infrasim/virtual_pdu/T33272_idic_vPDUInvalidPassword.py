@@ -25,7 +25,7 @@ class T33272_idic_vPDUInvalidPassword(CBaseCase):
     def test(self):
         self.log('INFO', 'Start Test...')
 
-        #power off
+        # power off
         for obj_rack in self.stack.get_rack_list():
 
             for obj_node in obj_rack.get_node_list():
@@ -35,22 +35,23 @@ class T33272_idic_vPDUInvalidPassword(CBaseCase):
 
                     power_unit[0].match_outlet_password(power_unit[1], pdu_pwd_temp)
 
+                    if power_unit[0].power_off(power_unit[1]):
+                        self.result(FAIL, 'Node can power off with wrong PDU outlet '
+                                          'password. Node is {}, outlet is {}.'.
+                                    format(obj_node.get_name(), power_unit[1]))
 
-                    if (power_unit[0].power_off(power_unit[1])):
-                        self.result(FAIL, 'Node can power off with wrong PDU outlet password. Node is {}, outlet is {}.'.
-                                format(obj_node.get_name(),power_unit[1]))
+                self.log('INFO', 'Wait 10 seconds for possible power off ...')
+                time.sleep(10)
 
-        self.log('INFO', 'Wait 5 seconds for possible power off ...')
-        time.sleep(5)
-
-        #power on
+        # power on
         for obj_rack in self.stack.get_rack_list():
             for obj_node in obj_rack.get_node_list():
                 for power_unit in obj_node.power:
-                    #power on
-                    if (power_unit[0].power_on(power_unit[1])):
-                        self.result(FAIL, 'Node can power on with wrong PDU outlet password. Node is {}, outlet is {}.'.
-                                format(obj_node.get_name(),power_unit[1]))
+                    # power on
+                    if power_unit[0].power_on(power_unit[1]):
+                        self.result(FAIL, 'Node can power on with wrong PDU outlet '
+                                          'password. Node is {}, outlet is {}.'.
+                                    format(obj_node.get_name(), power_unit[1]))
 
         self.log('INFO', 'End Test...')
 
