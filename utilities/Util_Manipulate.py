@@ -20,20 +20,19 @@ from lib.restapi import APIClient
 
 # set the args
 parser = argparse.ArgumentParser(description="Set the deploy parameters")
-parser.add_argument("-f", dest="conf_file", default="stack_requirement.json",
-                    nargs=1,
+parser.add_argument("-f", dest="conf_file", default="stack_requirement.json", type=str,
                     help="Set the config file (default: stack_requirement.json)")
 parser.add_argument("-l", dest="ova_file", default=[], nargs='+',
                     help="Set the ova list (default: [])")
-parser.add_argument("-d", dest="delay_time", type=int, default=20, nargs=1,
+parser.add_argument("-d", dest="delay_time", default=20,
                     help="Set the duration time (default: 20)", )
-parser.add_argument("-n", dest="nodes_network", default="VM Network", nargs=1,
-                    help="Set the nodes network (default: VM Network)")
+parser.add_argument("-n", dest="nodes_network", default="VM Network", type=str,
+                    help="Set the nodes network (default: \"VM Network)\")")
 args = parser.parse_args()
-CONF_FILE = args.conf_file[0]
+CONF_FILE = args.conf_file
 OVA_FILE = args.ova_file
-DELAY_TIME = args.delay_time[0]
-NODES_NETWORK = args.nodes_network[0]
+DELAY_TIME = args.delay_time
+NODES_NETWORK = args.nodes_network
 CONF_DATA = None
 VRACKSYSTEM_INFO = {}
 URI_PRE = None
