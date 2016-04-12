@@ -21,13 +21,12 @@ from lib.restapi import APIClient
 # set the args
 parser = argparse.ArgumentParser(description="Set the deploy parameters")
 parser.add_argument("-f", dest="conf_file", default="stack_requirement.json",
-                    nargs=1,
                     help="Set the config file (default: stack_requirement.json)")
 parser.add_argument("-l", dest="ova_file", default=[], nargs='+',
                     help="Set the ova list (default: [])")
-parser.add_argument("-d", dest="delay_time", type=int, default=20, nargs=1,
+parser.add_argument("-d", dest="delay_time", type=int, default=20,
                     help="Set the duration time (default: 20)", )
-parser.add_argument("-n", dest="nodes_network", default="VM Network", nargs=1,
+parser.add_argument("-n", dest="nodes_network", default="VM Network",
                     help="Set the nodes network (default: VM Network)")
 args = parser.parse_args()
 CONF_FILE = args.conf_file
