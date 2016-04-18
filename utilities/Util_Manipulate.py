@@ -60,7 +60,6 @@ PDU_CONFIG = {
         "snmpdata": "sentry"
     }
 }
-SHOULD_DEL = True
 
 
 def exit_func(e):
@@ -164,7 +163,8 @@ def get_hypervisor():
              "type": hypervisor_name[0],
              "ip": hypervisor_ip,
              "username": hypervisor_username,
-             "password": hypervisor_pwd}
+             "password": hypervisor_pwd,
+             "key": hypervisor_key}
         )
 
         esxi = get_expect_esxi(esxi_data, hypervisor_ip)
@@ -173,6 +173,7 @@ def get_hypervisor():
             HYPERVISORS.append(esxi)
             esxi["name"] = "hyper" + hypervisor_name[1]
         else:
+            # add this hypervisor to vracksystem
             payload = {"esxiIP": hypervisor_ip,
                        "username": hypervisor_username,
                        "password": hypervisor_pwd}
@@ -227,8 +228,13 @@ def delete_all_vms(esxi_id):
                  expect_status=200)
 
 
-def deploy_node(esxi_id, datastore, power, nodetype, ova, network):
+def deploy_node(esxi_id, datastores, power, nodetype, ova, network):
     url = "esxi/{}/deploy".format(esxi_id)
+    for datastore in datastores:
+        if "isilon_ds_lykan" in datastore:  # just workaround, wait for the API of vracksystem
+            break
+    else:
+        datastore = datastores[0]
     payload = {"datastore": datastore,
                "power": power,
                "count": "1",
@@ -347,7 +353,7 @@ def vpdu_mapping(esxi_id, esxi_name, vpdu_list, node_list):
         vpdu_restart(esxi_id, vpdu_control_ip)
 
 
-def deploy_vrack(vpdu_num, vswitch_num, vnodes):
+def deploy_vrack(hyper, vpdu_num, vswitch_num, vnodes):
     global GEN_CONF
     total_nodes = 0
     pdu_list = []
@@ -358,18 +364,30 @@ def deploy_vrack(vpdu_num, vswitch_num, vnodes):
         error_msg = "ERROR: {} vpdu(s) to be deployed are not enough to " \
                     "manage {} nodes".format(vpdu_num, total_nodes)
         return error_msg
+    for available_hypervisor in GEN_CONF["available_HyperVisor"]:
+        if hyper == available_hypervisor["key"]:
+            hyper_ip = available_hypervisor["ip"]
+            break
+    else:
+        err_info = "can't find the information of hypervisor {}".format(hyper)
+        exit_func(err_info)
     for hypervisor in HYPERVISORS:
-        # should add the resource check here, if not satified, continue
+        if hyper_ip != hypervisor["esxiIP"]:
+            continue
+        if hyper_ip != hypervisor["esxiIP"]:
+            err_info = "can't find the available hypervisor for {}".format(hyper)
+            exit_func(err_info)
+        print "*****************************"
+        print "get the specific hypervisor, here is the info:"
+        print hypervisor
+        print "*****************************"
         GEN_CONF["vRacks"][-1]["hypervisor"] = hypervisor["name"]
         GEN_CONF["vRacks"][-1]["vPDU"] = []
         GEN_CONF["vRacks"][-1]["vSwitch"] = []
         GEN_CONF["vRacks"][-1]["vNode"] = []
 
         hypervisor_id = hypervisor["id"]
-        if SHOULD_DEL:
-            print "WARNING: delete all the nodes in ESXi {}".format(
-                hypervisor_id)
-            delete_all_vms(hypervisor_id)
+        delete_all_vms(hypervisor_id)
 
         print '\033[93m> deploy vpdu ...\033[0m'
         # deploy vpdu
@@ -396,7 +414,7 @@ def deploy_vrack(vpdu_num, vswitch_num, vnodes):
                 exit_func(error_msg)
             for i in range(vpdu_num):
                 pdu_name = deploy_node(hypervisor_id,
-                                       hypervisor["datastores"][0],
+                                       hypervisor["datastores"],
                                        "on", "pdu", pdu_ova, 0)
                 pdu_list.append(pdu_name)
                 GEN_CONF["vRacks"][-1]["vPDU"].append(
@@ -461,7 +479,7 @@ def deploy_vrack(vpdu_num, vswitch_num, vnodes):
             for i in range(build_count):
                 print '{} {} ...'.format(node_type, node_ova)
                 node_name = deploy_node(hypervisor_id,
-                                        hypervisor["datastores"][0],
+                                        hypervisor["datastores"],
                                         "on", node_type, node_ova,
                                         NODES_NETWORK)
                 node_list.append(node_name)
@@ -492,6 +510,7 @@ def deploy_vracks():
         GEN_CONF["vRacks"].append({})
         GEN_CONF["vRacks"][-1]["name"] = key
         try:
+            hypervisor = vrack["hypervisor"]
             vpdu_num = vrack["vPDU"]
             vswitch_num = vrack["vSwitch"]
             vnodes = vrack["vNode"]
@@ -503,7 +522,7 @@ def deploy_vracks():
             print "ERROR: the info of vrack {} is wrong, " \
                   "because: {}".format(key, str(e))
             continue
-        message = deploy_vrack(vpdu_num, vswitch_num, vnodes)
+        message = deploy_vrack(hypervisor, vpdu_num, vswitch_num, vnodes)
         if "ERROR" in message:
             print message
             continue
