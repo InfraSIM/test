@@ -27,7 +27,9 @@ parser.add_argument("-l", dest="ova_file", default=[], nargs='+',
 parser.add_argument("-d", dest="delay_time", default=20,
                     help="Set the duration time (default: 20)", )
 parser.add_argument("-n", dest="nodes_network", default="VM Network", type=str,
-                    help="Set the nodes network (default: \"VM Network)\")")
+                    help="Set the nodes network (default: \"VM Network\")")
+parser.add_argument("--whitelist", dest="whitelist", default=[], nargs='?',
+                    help="the VMs in the whitelist won't be operated by this script")
 args = parser.parse_args()
 CONF_FILE = args.conf_file
 OVA_FILE = args.ova_file
@@ -38,6 +40,7 @@ VRACKSYSTEM_INFO = {}
 URI_PRE = None
 OBJ_REST = None
 HYPERVISORS = []
+WHITELIST = args.whitelist
 GEN_CONF = {
     "vRackSystem": {},
     "available_HyperVisor": [],
@@ -206,7 +209,8 @@ def get_datastore():
 def get_vms(esxi_id):
     vms = list(rest_api(target="esxi/{}/getvms".format(esxi_id)))
     for vm in vms:
-        if "dhcp" in vm["name"].lower():
+        vm_name = vm["name"]
+        if vm_name in WHITELIST:
             vms.remove(vm)
     return vms
 
@@ -215,7 +219,7 @@ def delete_all_vms(esxi_id):
     vms = get_vms(esxi_id)
     for vm in vms:
         vm_name = vm["name"]
-        if "dhcp" in vm_name.lower():
+        if vm_name in WHITELIST:
             continue
         rest_api(target="esxi/{}/destroyvm".format(esxi_id),
                  action="post",
