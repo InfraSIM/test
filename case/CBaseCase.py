@@ -29,6 +29,7 @@ import traceback
 import lib.Env as Env
 from lib.Logger import CLogger
 from idic.graph.Graph import CGraph
+from lib.Apps import is_valid_ip
 
 # Case result
 PASS = 'pass'
@@ -746,6 +747,14 @@ class CBaseCase(CLogger):
                 self.log('WARNING', 'Node {} is not managed by any PDU, '
                                     'make sure it is power on before test'.
                          format(obj_node.get_name()))
+
+        for obj_node in self.stack.walk_node():
+            # Verify node information is complete
+            str_bmc_ip = obj_node.get_bmc().get_ip()
+            if not is_valid_ip(str_bmc_ip):
+                self.result(BLOCK, 'Node {} BMC IP is not valid: {}'.
+                         format(obj_node.get_name(), str_bmc_ip))
+                return False
 
         self.log('INFO', 'Build stack done')
 
