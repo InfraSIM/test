@@ -48,7 +48,7 @@ GEN_CONF = {
 }
 NODES_TYPE = ["quanta_t41", "quanta_d51", "s2600kp",
               "dell_c6320", "dell_r630", "s2600tp",
-              "s2600wt", "dell_r730xd", "vnode"]
+              "s2600wtt", "dell_r730xd", "vnode"]
 PDU_CONFIG = {
     "hawk": {
         "name": "hawk",
