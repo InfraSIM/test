@@ -486,12 +486,11 @@ def deploy_vrack(hyper, vpdu_num, vswitch_num, vnodes):
                 node_list.append(node_name)
             del vnodes[node_type]
         print node_list
-        time.sleep(30)
         if vnodes:
             error_msg = "ERROR: there is no ova transferred for the nodes: " \
                         "{}".format(vnodes.keys())
             exit_func(error_msg)
-        time.sleep(30)
+        time.sleep(120)
         vpdu_mapping(hypervisor_id, hypervisor["name"], pdu_list, node_list)
         vms = get_vms(hypervisor_id)
         for vm in vms:
