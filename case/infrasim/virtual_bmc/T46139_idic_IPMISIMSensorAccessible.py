@@ -58,6 +58,8 @@ class T46139_idic_IPMISIMSensorAccessible(CBaseCase):
                                 format(obj_rack.get_name(), obj_node.get_name(), bmc_obj.get_ip()))
 
                 else:
+                    # Add 1s sleep to meet lab network latency
+                    time.sleep(1)
 
                     str_rsp = bmc_ssh.send_command_wait_string(str_command='sensor info'+chr(13),
                                                                wait='IPMI_SIM',
