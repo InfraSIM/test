@@ -22,8 +22,13 @@ class T46140_idic_IPMISIMSelAccessible(CBaseCase):
 
                 obj_bmc = obj_node.get_bmc()
 
-                #Get product name from FRU data.
+                # Get product name from FRU data.
                 ret, rsp = obj_node.get_bmc().ipmi.ipmitool_standard_cmd('fru print')
+                # Test fail if this nodes ipmi can't response
+                if ret != 0:
+                    self.result(BLOCK, 'Node {} on rack {} fail to response ipmitool fru print'.
+                                format(obj_node.get_name(), obj_rack.get_name()))
+                    continue
 
                 fru = {}
                 for item in rsp.split('\n'):
@@ -32,11 +37,11 @@ class T46140_idic_IPMISIMSelAccessible(CBaseCase):
                     fru[key] = value
 
                 try:
-                    #Try to find the corresponding sensor id by product name from JSON file.
+                    # Try to find the corresponding sensor id by product name from JSON file.
                     sensor_id = self.data[fru['Product Name']]
 
                 except KeyError, e:
-                    #If product name missing, block this case.
+                    # If product name missing, block this case.
                     self.result(BLOCK,
                     """
                     KeyError: {}.
@@ -55,13 +60,13 @@ class T46140_idic_IPMISIMSelAccessible(CBaseCase):
                     bmc_ssh.send_command_wait_string(str_command = 'sel set {} {} deassert'.format(sensor_id, event_id, chr(13)), wait = 'IPMI_SIM',int_time_out =3, b_with_buff = False)
                     bmc_ssh.send_command_wait_string(str_command = 'sel get {} {}'.format(sensor_id, chr(13)), wait = 'IPMI_SIM',int_time_out =3, b_with_buff = False)
 
-                    #Get sel by using ipmitool
+                    # Get sel by using ipmitool
                     ret, rsp = obj_node.get_bmc().ipmi.ipmitool_standard_cmd('sel list')
                     self.log('INFO', 'ret: {}'.format(ret))
                     self.log('INFO', 'rsp: \n{}'.format(rsp))
 
                     if ret != 0:
-                        #Failed to get sel by using ipmitool
+                        # Failed to get sel by using ipmitool
                         self.result(FAIL, 'BMC IPMI_SIM sensor command of a node not work. Rack is {}, Node is {}, BMC ip is {}. '
                                     'ipmitool return: {}, expect: 0, rsp: \n{}'.
                                     format(obj_rack.get_name(), obj_node.get_name(), obj_bmc.get_ip(), ret, rsp))
@@ -72,7 +77,7 @@ class T46140_idic_IPMISIMSelAccessible(CBaseCase):
                         if is_match != None:
                             self.log('INFO', 'Get sel from vBMC: {}'.format(rsp))
                         else:
-                            #Nothing gotten from vBMC, failed to add sel
+                            # Nothing gotten from vBMC, failed to add sel
                             self.result(FAIL, 'Nothing from vBMC. Node is {}, BMC ip is: {}'.format(obj_node.get_name(), obj_bmc.get_ip()))
 
                 time.sleep(1)
