@@ -738,15 +738,16 @@ class CBaseCase(CLogger):
             self.log('INFO', 'Build {} {} ...'.format(obj_device.str_sub_type, str_id))
             obj_device.set_logger(self.obj_logger)
 
-        for obj_node in self.stack.walk_node():
-            # Power on all node
-            if obj_node.power:
-                self.log('INFO', 'Power on node {} ...'.format(obj_node.get_name()))
-                obj_node.power_on()
-            else:
-                self.log('WARNING', 'Node {} is not managed by any PDU, '
-                                    'make sure it is power on before test'.
-                         format(obj_node.get_name()))
+        self.log('WARNING', 'Place holder for stack health check.')
+        # for obj_node in self.stack.walk_node():
+        #     # Power on all node
+        #     if obj_node.power:
+        #         self.log('INFO', 'Power on node {} ...'.format(obj_node.get_name()))
+        #         obj_node.power_on()
+        #     else:
+        #         self.log('WARNING', 'Node {} is not managed by any PDU, '
+        #                             'make sure it is power on before test'.
+        #                  format(obj_node.get_name()))
 
         for obj_node in self.stack.walk_node():
             # Verify node information is complete
