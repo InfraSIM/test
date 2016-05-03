@@ -23,8 +23,16 @@ class T33248_idic_IPMILocalFruPrint(CBaseCase):
 
                 obj_bmc = obj_node.get_bmc()
                 bmc_ssh = obj_bmc.ssh
-                str_rsp = bmc_ssh.send_command_wait_string(str_command = 'ipmitool -I lanplus -H localhost -U {} -P {} fru {}'.format(obj_bmc.get_username(), obj_bmc.get_password(), chr(13)), wait = '$', int_time_out = 3, b_with_buff = False)
-                str_rsp += bmc_ssh.send_command_wait_string(str_command = 'ipmitool -I lanplus -H localhost -U {} -P {} fru print 0 {}'.format(obj_bmc.get_username(), obj_bmc.get_password(), chr(13)), wait = '$', int_time_out = 3, b_with_buff = False)
+                str_rsp = bmc_ssh.send_command_wait_string(str_command='ipmitool -I lanplus -H localhost -U {} -P {} fru {}'.
+                                                           format(obj_bmc.get_username(), obj_bmc.get_password(), chr(13)),
+                                                           wait='$',
+                                                           int_time_out=3,
+                                                           b_with_buff = False)
+                str_rsp += bmc_ssh.send_command_wait_string(str_command='ipmitool -I lanplus -H localhost -U {} -P {} fru print 0 {}'.
+                                                            format(obj_bmc.get_username(), obj_bmc.get_password(), chr(13)),
+                                                            wait='$',
+                                                            int_time_out=3,
+                                                            b_with_buff=False)
 
                 self.log('INFO', 'rsp: \n{}'.format(str_rsp))
 
