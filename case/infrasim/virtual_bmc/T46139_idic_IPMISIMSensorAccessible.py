@@ -44,10 +44,16 @@ class T46139_idic_IPMISIMSensorAccessible(CBaseCase):
                     sensor_id = sensor_dic.keys()[0]
                     sensor_value_expected = sensor_dic[sensor_id]
 
-                except KeyError:
-                    # Dell r630 product name value is empty which is expected,
-                    # so shouldn't block test when product name empty here.
-                    pass
+                except KeyError, e:
+                    # If product name missing, block this case.
+                    self.result(BLOCK,
+                    """
+                    KeyError: {}.
+                    Please supplement product name of node ({}) and the corresponding sensor id in {}.json.
+                    For more details, please read the document: https://infrasim.readthedocs.org/en/latest/
+                    """
+                                .format(e, e, self.__class__.__name__))
+                    continue
 
                 sensor_value = 1000.00
 
