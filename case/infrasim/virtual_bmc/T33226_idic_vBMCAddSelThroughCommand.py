@@ -23,8 +23,13 @@ class T33226_idic_vBMCAddSelThroughCommand(CBaseCase):
 
                 obj_bmc = obj_node.get_bmc()
 
-                #Get product name from FRU data.
+                # Get product name from FRU data.
                 ret, rsp = obj_node.get_bmc().ipmi.ipmitool_standard_cmd('fru print')
+                # Test fail if this nodes ipmi can't response
+                if ret != 0:
+                    self.result(BLOCK, 'Node {} on rack {} fail to response ipmitool fru print'.
+                                format(obj_node.get_name(), obj_rack.get_name()))
+                    continue
 
                 fru = {}
                 for item in rsp.split('\n'):
@@ -33,11 +38,11 @@ class T33226_idic_vBMCAddSelThroughCommand(CBaseCase):
                     fru[key] = value
 
                 try:
-                    #Try to find the corresponding sensor id by product name from JSON file.
+                    # Try to find the corresponding sensor id by product name from JSON file.
                     sensor_id = self.data[fru['Product Name']]
 
                 except KeyError, e:
-                    #If product name missing, block this case.
+                    # If product name missing, block this case.
                     self.result(BLOCK,
                     """
                     KeyError: {}.
@@ -50,24 +55,24 @@ class T33226_idic_vBMCAddSelThroughCommand(CBaseCase):
 
                     event_id = 6
 
-                    #Get sel by using IPMI_SIM
+                    # Get sel by using IPMI_SIM
                     bmc_ssh = obj_bmc.ssh_ipmi_sim
                     str_rsp = bmc_ssh.send_command_wait_string(str_command = 'sel get {} {}'.format(sensor_id, chr(13)), wait = 'IPMI_SIM', int_time_out = 3, b_with_buff = False)
                     self.log('INFO', 'Get sel from vBMC: {}'.format(str_rsp))
 
-                    #Add sel through command
+                    # Add sel through command
                     bmc_ssh.send_command_wait_string(str_command = 'sel set {} {} assert {}'.format(sensor_id, event_id, chr(13)), wait = 'IPMI_SIM', int_time_out = 3, b_with_buff = False)
                     bmc_ssh.send_command_wait_string(str_command = 'sel set {} {} deassert {}'.format(sensor_id, event_id, chr(13)), wait = 'IPMI_SIM', int_time_out = 3, b_with_buff = False)
 
                     time.sleep(3)
 
-                    #Get sel by using ipmitool
+                    # Get sel by using ipmitool
                     ret, rsp = obj_node.get_bmc().ipmi.ipmitool_standard_cmd('sel list')
                     self.log('INFO', 'ret: {}'.format(ret))
                     self.log('INFO', 'rsp: \n{}'.format(rsp))
 
                     if ret != 0:
-                        #Failed to get sel by using ipmitool
+                        # Failed to get sel by using ipmitool
                         self.result(FAIL, 'Node {} on rack {} fail to add BMC sel through command, '
                                     'ipmitool return: {}, expect: 0, rsp: \n{}'.
                                     format(obj_node.get_name(), obj_rack.get_name(), ret, rsp))
@@ -79,7 +84,7 @@ class T33226_idic_vBMCAddSelThroughCommand(CBaseCase):
                             self.log('INFO', 'Get sel from vBMC: {}'.format(rsp))
 
                         else:
-                            #Failed to add sel through command
+                            # Failed to add sel through command
                             self.result(FAIL, 'Nothing from vBMC. Node is {}, BMC ip is: {}'.format(obj_node.get_name(), obj_bmc.get_ip()))
 
                 time.sleep(1)

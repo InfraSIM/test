@@ -26,6 +26,11 @@ class T46139_idic_IPMISIMSensorAccessible(CBaseCase):
 
                 # Get product name from FRU data.
                 ret, rsp = obj_node.get_bmc().ipmi.ipmitool_standard_cmd('fru print')
+                # Test fail if this nodes ipmi can't response
+                if ret != 0:
+                    self.result(BLOCK, 'Node {} on rack {} fail to response ipmitool fru print'.
+                                format(obj_node.get_name(), obj_rack.get_name()))
+                    continue
 
                 fru = {}
                 for item in rsp.split('\n'):
