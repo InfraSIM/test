@@ -75,7 +75,10 @@ def conf_parse():
     global CONF_DATA
     global VRACKSYSTEM_INFO
     global GEN_CONF
-    conf_file_path = "../configure/{}".format(CONF_FILE)
+    if os.path.isfile(CONF_FILE):
+        conf_file_path = CONF_FILE
+    else:
+        conf_file_path = "../configure/{}".format(CONF_FILE)
     try:
         with open(conf_file_path) as configure:
             CONF_DATA = json.load(configure)
