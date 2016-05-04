@@ -14,12 +14,13 @@
 
     "vRacks": {
         "vRack1": {
+            "hypervisor": "ESXi1",
             "vPDU": 1,
             "vSwitch": 0,
             "vNode": {
-		"quanta_t41":1,
-		"quanta_d51":1,
-		"s2600kp":1
+                "quanta_t41":1,
+                "quanta_d51":1,
+                "s2600kp":1
             }
         }
     }

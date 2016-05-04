@@ -514,8 +514,8 @@ def deploy_vracks():
         GEN_CONF["vRacks"][-1]["name"] = key
         try:
             hypervisor = vrack["hypervisor"]
-            vpdu_num = vrack["vPDU"]
-            vswitch_num = vrack["vSwitch"]
+            vpdu_num = vrack.get("vPDU", 0)
+            vswitch_num = vrack.get("vSwitch", 0)
             vnodes = vrack["vNode"]
             for node in vnodes.keys():
                 if node.lower() not in NODES_TYPE:
