@@ -38,3 +38,4 @@ class T73327_idic_SelInfoEntriesCountCheck(CBaseCase):
     def deconfig(self):
         # To do: Case specific deconfig
         CBaseCase.deconfig(self)
+
