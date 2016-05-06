@@ -23,6 +23,8 @@ class T73327_idic_SelInfoEntriesCountCheck(CBaseCase):
             for obj_node in obj_rack.get_node_list():
                 self.log('INFO', 'Check node {} of rack {} ...'.
                          format(obj_node.get_name(), obj_rack.get_name()))
+                obj_node.get_bmc().ipmi.ipmitool_standard_cmd('sel clear')
+                time.sleep(3)
                 ret, rsp = obj_node.get_bmc().ipmi.ipmitool_standard_cmd('sel info')
                 self.log('INFO', 'ret: {}'.format(ret))
                 self.log('INFO', 'rsp: \n{}'.format(rsp))
