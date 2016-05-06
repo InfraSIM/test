@@ -25,7 +25,7 @@ class T46194_idic_QEMUBootAutomatically(CBaseCase):
                 bmc_ssh = obj_bmc.ssh
                 str_rsp = bmc_ssh.send_command_wait_string(str_command='ps | grep "qemu"'+chr(13),
                                                            wait='$',
-                                                           int_time_out=3,
+                                                           int_time_out=10,
                                                            b_with_buff=False)
 
                 self.log('INFO', 'rsp: \n{}'.format(str_rsp))

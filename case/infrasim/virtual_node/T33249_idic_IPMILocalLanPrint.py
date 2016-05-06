@@ -26,8 +26,11 @@ class T33249_idic_IPMILocalLanPrint(CBaseCase):
                 str_rsp = bmc_ssh.send_command_wait_string(str_command='ipmitool -I lanplus -H localhost -U {} -P {} fru print 0 {}'.
                                                            format(obj_bmc.get_username(), obj_bmc.get_password(), chr(13)),
                                                            wait='$',
-                                                           int_time_out=3,
+                                                           int_time_out=10,
                                                            b_with_buff=False)
+                if not str_rsp:
+                    self.result(BLOCK, 'Fail to get node {} FRU information and get specified data')
+                    return
 
                 fru = {}
                 for item in str_rsp.split('\n'):
