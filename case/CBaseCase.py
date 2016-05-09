@@ -756,6 +756,39 @@ class CBaseCase(CLogger):
                 self.result(BLOCK, 'Node {} BMC IP is not valid: {}'.
                          format(obj_node.get_name(), str_bmc_ip))
                 return False
+            # Wait until vBMC's IPMI start to response
+            # Retry every 3 seconds for 20 times
+            b_bmc_ready = False
+            int_retry = 20
+            int_gap = 3
+            for i in range(int_retry):
+                ret, cc, rsp = obj_node.get_bmc().ipmi.ipmitool_raw_cmd('0x00 0x01')
+                # BMC is not on, power on the virtual node in first loop
+                if ret != 0:
+                    if i == 0:
+                        self.log('WARNING', 'Node {} vBMC doesn\'t response, AC on the node')
+                        obj_node.power_on()
+                    else:
+                        self.log('WARNING', 'Node {} vBMC doesn\'t response, retry...')
+                    time.sleep(int_gap)
+                    continue
+                # System power is not on, do ipmi power on
+                elif rsp[0] != '0x01':
+                    ret, rsp = obj_node.get_bmc().ipmi.ipmitool_standard_cmd('chassis power on')
+                    if ret == 0:
+                        continue
+                    else:
+                        self.result(BLOCK, 'Node {} system fail to do chassis power on'.format(obj_node.get_name()))
+                        return False
+                else:
+                    b_bmc_ready = True
+                    break
+
+            if b_bmc_ready:
+                self.log('INFO', 'Node {} BMC is alive, system is power on'.format(obj_node.get_name()))
+            else:
+                self.result(BLOCK, 'Node {} is not ready after 1 minutes power on retry'.format(obj_node.get_name()))
+                return False
 
         self.log('INFO', 'Build stack done')
 

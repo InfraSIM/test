@@ -26,7 +26,7 @@ class T33250_idic_IPMILocalSensorList(CBaseCase):
                 str_rsp = bmc_ssh.send_command_wait_string(str_command='ipmitool -I lanplus -H localhost -U {} -P {} sensor list {}'.
                                                            format(obj_bmc.get_username(), obj_bmc.get_password(), chr(13)),
                                                            wait='$',
-                                                           int_time_out=3,
+                                                           int_time_out=10,
                                                            b_with_buff=False)
                 self.log('INFO', 'rsp: \n{}'.format(str_rsp))
                 is_match = re.search("failed", str_rsp)

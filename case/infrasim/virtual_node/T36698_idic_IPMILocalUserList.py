@@ -26,12 +26,12 @@ class T36698_idic_IPMILocalUserList(CBaseCase):
                 str_rsp = bmc_ssh.send_command_wait_string(str_command='ipmitool -I lanplus -H localhost -U {} -P {} user list {}'.
                                                            format(obj_bmc.get_username(), obj_bmc.get_password(), chr(13)),
                                                            wait='$',
-                                                           int_time_out=3,
+                                                           int_time_out=10,
                                                            b_with_buff=False)
                 str_rsp += bmc_ssh.send_command_wait_string(str_command='ipmitool -I lanplus -H localhost -U {} -P {} user summary 0 {}'.
                                                             format(obj_bmc.get_username(), obj_bmc.get_password(), chr(13)),
                                                             wait='$',
-                                                            int_time_out=3,
+                                                            int_time_out=10,
                                                             b_with_buff = False)
 
                 self.log('INFO', 'rsp: \n{}'.format(str_rsp))
