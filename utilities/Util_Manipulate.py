@@ -333,28 +333,38 @@ def vpdu_mapping(esxi_id, esxi_name, vpdu_list, node_list):
                                   "password": "idic"})
                 GEN_CONF["vRacks"][-1]["vPDU"][loop]["outlet"][pos_key] = "idic"
 
-                for vm in vms:
-                    if node_name == vm["name"]:
-                        datastore = vm["datastore"]
-                        rest_api(target="esxi/{}/vpdumapadd".format(esxi_id),
-                                 action="post",
-                                 payload={"ip": vpdu_control_ip,
-                                          "dt": datastore,
-                                          "name": node_name,
-                                          "pdu": i, "port": j})
-                        node_info = {}
-                        node_info["name"] = node_name
-                        node_info["datastore"] = datastore
-                        node_info["power"] = [{"vPDU": vpdu,
-                                               "outlet": pos_key}]
-                        node_info["network"] = []
-                        node_info["bmc"] = {
-                            "ip": vm["ip"][0] if vm["ip"] else "",
-                            "username": "admin",
-                            "password": "admin"}
-                        node_info["hypervisor"] = esxi_name
-                        GEN_CONF["vRacks"][-1]["vNode"].append(node_info)
+                for node_info in GEN_CONF["vRacks"][-1]["vNode"]:
+                    datastore = node_info["datastore"]
+                    rest_api(target="esxi/{}/vpdumapadd".format(esxi_id),
+                             action="post",
+                             payload={"ip": vpdu_control_ip,
+                                      "dt": datastore,
+                                      "name": node_name,
+                                      "pdu": i, "port": j})
+                    node_info["power"] = [{"vPDU": vpdu,
+                                           "outlet": pos_key}]
+
         vpdu_restart(esxi_id, vpdu_control_ip)
+
+
+def fill_node(esxi_id, esxi_name, node_list):
+    vms = get_vms(esxi_id)
+    for node_name in node_list:
+        for vm in vms:
+            if node_name == vm["name"]:
+                datastore = vm["datastore"]
+                node_info = {}
+                node_info["name"] = node_name
+                node_info["datastore"] = datastore
+                node_info["power"] = []
+                node_info["network"] = []
+                node_info["bmc"] = {
+                    "ip": vm["ip"][0] if vm["ip"] else "",
+                    "username": "admin",
+                    "password": "admin"}
+                node_info["hypervisor"] = esxi_name
+                GEN_CONF["vRacks"][-1]["vNode"].append(node_info)
+                continue
 
 
 def deploy_vrack(hyper, vpdu_num, vswitch_num, vnodes):
@@ -493,9 +503,14 @@ def deploy_vrack(hyper, vpdu_num, vswitch_num, vnodes):
             error_msg = "ERROR: there is no ova transferred for the nodes: " \
                         "{}".format(vnodes.keys())
             exit_func(error_msg)
-        time.sleep(120)
+
+        wait = 60+6*len(node_list)
+        print 'Wait {}s for nodes to get IP ...'.format(wait)
+        time.sleep(wait)
+        fill_node(hypervisor_id, hypervisor["name"], node_list)
         vpdu_mapping(hypervisor_id, hypervisor["name"], pdu_list, node_list)
         vms = get_vms(hypervisor_id)
+
         for vm in vms:
             vm_name = vm["name"]
             operate_node(hypervisor_id, vm_name, "poweron")
