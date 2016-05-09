@@ -56,3 +56,9 @@ class CNode(CDevice):
         for power_unit in self.power:
             power_unit[0].match_outlet_password(power_unit[1])
             power_unit[0].power_off(power_unit[1])
+
+    def _has_power_control(self):
+        if self.power:
+            return True
+        else:
+            return False
