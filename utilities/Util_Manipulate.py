@@ -334,15 +334,16 @@ def vpdu_mapping(esxi_id, esxi_name, vpdu_list, node_list):
                 GEN_CONF["vRacks"][-1]["vPDU"][loop]["outlet"][pos_key] = "idic"
 
                 for node_info in GEN_CONF["vRacks"][-1]["vNode"]:
-                    datastore = node_info["datastore"]
-                    rest_api(target="esxi/{}/vpdumapadd".format(esxi_id),
-                             action="post",
-                             payload={"ip": vpdu_control_ip,
-                                      "dt": datastore,
-                                      "name": node_name,
-                                      "pdu": i, "port": j})
-                    node_info["power"] = [{"vPDU": vpdu,
-                                           "outlet": pos_key}]
+                    if node_info["name"] == node_name:
+                        datastore = node_info["datastore"]
+                        rest_api(target="esxi/{}/vpdumapadd".format(esxi_id),
+                                 action="post",
+                                 payload={"ip": vpdu_control_ip,
+                                          "dt": datastore,
+                                          "name": node_name,
+                                          "pdu": i, "port": j})
+                        node_info["power"] = [{"vPDU": vpdu,
+                                               "outlet": pos_key}]
 
         vpdu_restart(esxi_id, vpdu_control_ip)
 
