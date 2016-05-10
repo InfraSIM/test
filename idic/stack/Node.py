@@ -47,15 +47,21 @@ class CNode(CDevice):
         if not self.power:
             raise Exception('Can\'t operate node\'s power, please bind to any PDU first.')
         for power_unit in self.power:
-            power_unit[0].match_outlet_password(power_unit[1])
-            power_unit[0].power_on(power_unit[1])
+            if not power_unit[0].match_outlet_password(power_unit[1]):
+                return False
+            if not power_unit[0].power_on(power_unit[1]):
+                return False
+        return True
 
     def power_off(self):
         if not self.power:
             raise Exception('Can\'t operate node\'s power, please bind to any PDU first.')
         for power_unit in self.power:
-            power_unit[0].match_outlet_password(power_unit[1])
-            power_unit[0].power_off(power_unit[1])
+            if not power_unit[0].match_outlet_password(power_unit[1]):
+                return False
+            if not power_unit[0].power_off(power_unit[1]):
+                return False
+        return True
 
     def _has_power_control(self):
         if self.power:
