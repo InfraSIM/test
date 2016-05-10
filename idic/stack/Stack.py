@@ -11,6 +11,7 @@ from lib.Device import CDevice
 from idic.stack.Hypervisor import CHypervisor
 from idic.stack.Rack import CRack
 from lib.restapi import APIClient
+from lib.Apps import is_valid_ip
 
 import json
 
@@ -160,6 +161,17 @@ class CStack(CDevice):
         for obj_rack in self.walk_rack():
             for obj_switch in obj_rack.walk_switch():
                 yield obj_switch
+
+    def query_node(self, str_condition):
+        '''
+        Return a node object if it match condition
+        Support IP query now.
+        '''
+        if is_valid_ip(str_condition):
+            for obj_node in self.walk_node():
+                if obj_node.get_bmc().get_ip() == str_condition:
+                    return obj_node
+        return None
 
     # ------------------------------
     # vRack access via vRackSystem,
