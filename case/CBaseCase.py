@@ -766,9 +766,11 @@ class CBaseCase(CLogger):
                 # BMC is not on, power on the virtual node in first loop
                 if ret != 0:
                     if i == 0:
-                        self.log('WARNING', 'Node {} vBMC fail to response IOL command, ret: {}, AC on the node'.
+                        self.log('WARNING', 'Node {} vBMC fail to response IOL command, ret: {}, AC cycle the node ...'.
                                  format(obj_node.get_name(), ret))
                         if obj_node._has_power_control():
+                            obj_node.power_off()
+                            time.sleep(10)
                             obj_node.power_on()
                         else:
                             self.result(BLOCK, 'Node {} vBMC doesn\'t response IOL command, ret: {}'.
