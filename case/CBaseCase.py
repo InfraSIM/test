@@ -766,10 +766,16 @@ class CBaseCase(CLogger):
                 # BMC is not on, power on the virtual node in first loop
                 if ret != 0:
                     if i == 0:
-                        self.log('WARNING', 'Node {} vBMC doesn\'t response, AC on the node')
-                        obj_node.power_on()
+                        self.log('WARNING', 'Node {} vBMC fail to response IOL command, ret: {}, AC on the node'.
+                                 format(obj_node.get_name(), ret))
+                        if obj_node._has_power_control():
+                            obj_node.power_on()
+                        else:
+                            self.result(BLOCK, 'Node {} vBMC doesn\'t response IOL command, ret: {}'.
+                                        format(obj_node.get_name(), ret))
                     else:
-                        self.log('WARNING', 'Node {} vBMC doesn\'t response, retry...')
+                        self.log('WARNING', 'Node {} vBMC doesn\'t response, retry...'.
+                                 format(obj_node.get_name()))
                     time.sleep(int_gap)
                     continue
                 # System power is not on, do ipmi power on
@@ -778,16 +784,20 @@ class CBaseCase(CLogger):
                     if ret == 0:
                         continue
                     else:
-                        self.result(BLOCK, 'Node {} system fail to do chassis power on'.format(obj_node.get_name()))
+                        self.result(BLOCK, 'Node {} system fail to do chassis power on, '
+                                           'ret: {}, completion code: {}, response data: {}'.
+                                    format(obj_node.get_name(), ret, cc, rsp))
                         return False
                 else:
                     b_bmc_ready = True
                     break
 
             if b_bmc_ready:
-                self.log('INFO', 'Node {} BMC is alive, system is power on'.format(obj_node.get_name()))
+                self.log('INFO', 'Node {} BMC is alive, system is power on'.
+                         format(obj_node.get_name()))
             else:
-                self.result(BLOCK, 'Node {} is not ready after 1 minutes power on retry'.format(obj_node.get_name()))
+                self.result(BLOCK, 'Node {} is not ready after 1 minutes power on retry'.
+                            format(obj_node.get_name()))
                 return False
 
         self.log('INFO', 'Build stack done')
