@@ -38,7 +38,7 @@ def install_in_linux():
         Install the python-dev module in linux system
     """  
     try:
-        os.system("sudo apt-get -y install python-dev")
+        os.system("sudo apt-get -y install build-essential libssl-dev libffi-dev python-dev")
     except:
         e = sys.exc_info()[0]
         print e
@@ -120,6 +120,7 @@ if __name__ == '__main__':
     install_and_import('pyserial')
     install_and_import('gevent')
     install_and_import('jsonrpclib')
+    install_and_import('cryptography')
     install_and_import('paramiko')
     install_and_import('requests')
     install_and_import('six')
