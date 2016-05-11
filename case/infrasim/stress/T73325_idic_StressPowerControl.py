@@ -38,13 +38,31 @@ class T73325_idic_StressPowerControl(CBaseCase):
         CBaseCase.deconfig(self)
 
     def power_control_test(self):
+        # For all nodes, power off node
         for obj_node in self.stack.walk_node():
-            # Power on node
+            obj_node.get_bmc().ssh.disconnect()
+            if not obj_node.power_off():
+                self.result(FAIL, '[{}/{}] Fail to power off node {}'.
+                            format(self.curr+1, self.retry, obj_node.get_name()))
+                return False
+            else:
+                self.log('INFO', '[{}/{}] Power off node {} done'.
+                         format(self.curr+1, self.retry, obj_node.get_name()))
+            time.sleep(5)
+
+        # For all nodes, power on node
+        for obj_node in self.stack.walk_node():
             if not obj_node.power_on():
                 self.result(FAIL, '[{}/{}] Fail to power on node {}'.
                             format(self.curr+1, self.retry, obj_node.get_name()))
                 return False
+            else:
+                self.log('INFO', '[{}/{}] Power on node {} done'.
+                         format(self.curr+1, self.retry, obj_node.get_name()))
+            time.sleep(5)
 
+        # For all nodes, check status
+        for obj_node in self.stack.walk_node():
             # Wait until ipmi stack response
             b_ipmi_ready = False
             for i in range(20):
@@ -66,7 +84,6 @@ class T73325_idic_StressPowerControl(CBaseCase):
                 return False
 
             # Remote shell "ps" and check process status
-            time.sleep(2)
             obj_node.get_bmc().ssh.connect()
             rsp = obj_node.get_bmc().ssh.remote_shell('ps')
             if rsp['exitcode'] != 0:
@@ -115,7 +132,7 @@ class T73325_idic_StressPowerControl(CBaseCase):
                 elif str_output.find(str_startcmd) >= 0:
                     self.log('INFO', '[{}/{}] Node {} process found: {}'.
                              format(self.curr+1, self.retry, obj_node.get_name(), str_startcmd))
-                    self.log('Wait until qemu boot ...')
+                    self.log('INFO', 'Wait until qemu boot ...')
                     time.sleep(3)
                     rsp = obj_node.get_bmc().ssh.remote_shell('ps')
                     str_output = rsp['stdout']
@@ -126,15 +143,6 @@ class T73325_idic_StressPowerControl(CBaseCase):
             if not b_qemu_found:
                 self.result(FAIL, '[{}/{}] Node {} fail to start {} in 1 minutes'.
                             format(self.curr+1, self.retry, obj_node.get_name(), str_qemu))
-
-            obj_node.get_bmc().ssh.disconnect()
-
-            # Power control node
-            if not obj_node.power_off():
-                self.result(FAIL, '[{}/{}] Fail to power off node {}'.
-                            format(self.curr+1, self.retry, obj_node.get_name()))
-                return False
-            time.sleep(1)
 
         time.sleep(10)
         return True
