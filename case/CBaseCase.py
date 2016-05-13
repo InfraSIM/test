@@ -759,7 +759,7 @@ class CBaseCase(CLogger):
             # Wait until vBMC's IPMI start to response
             # Retry every 3 seconds for 20 times
             b_bmc_ready = False
-            int_retry = 20
+            int_retry = 40
             int_gap = 3
             for i in range(int_retry):
                 ret, cc, rsp = obj_node.get_bmc().ipmi.ipmitool_raw_cmd('0x00 0x01')
