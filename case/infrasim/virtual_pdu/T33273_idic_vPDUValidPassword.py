@@ -74,5 +74,39 @@ class T33273_idic_vPDUValidPassword(CBaseCase):
         self.log('INFO', 'End Test...')
 
     def deconfig(self):
-        # To do: Case specific deconfig
+
+        for obj_node in self.stack.walk_node():
+
+            # Wait until vBMC's IPMI start to response
+            # Retry every 3 seconds for 40 times
+            b_bmc_ready = False
+            int_retry = 40
+            int_gap = 3
+            for i in range(int_retry):
+                ret, cc, rsp = obj_node.get_bmc().ipmi.ipmitool_raw_cmd('0x00 0x01')
+                # BMC is not on, power on the virtual node in first loop
+                if ret != 0:
+                    self.log('WARNING', 'Node {} vBMC doesn\'t response, retry...'.
+                             format(obj_node.get_name()))
+                    time.sleep(int_gap)
+                    continue
+                # System power is not on, do ipmi power on
+                elif rsp[0] != '0x01':
+                    ret, rsp = obj_node.get_bmc().ipmi.ipmitool_standard_cmd('chassis power on')
+                    if ret == 0:
+                        continue
+                    else:
+                        self.result(FAIL, 'Node {} system fail to do chassis power on after T33273, '
+                                          'ret: {}, completion code: {}, response data: {}'.
+                                    format(obj_node.get_name(), ret, cc, rsp))
+                        break
+                else:
+                    b_bmc_ready = True
+                    break
+
+            if b_bmc_ready:
+                continue
+            else:
+                self.result(FAIL, 'Node {} in unexpected status after T33273'.format(obj_node.get_name()))
+
         CBaseCase.deconfig(self)
