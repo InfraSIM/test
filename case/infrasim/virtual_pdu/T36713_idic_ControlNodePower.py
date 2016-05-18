@@ -74,7 +74,7 @@ class T36713_idic_ControlNodePower(CBaseCase):
                 ret, cc, rsp = obj_node.get_bmc().ipmi.ipmitool_raw_cmd('0x00 0x01')
                 # BMC is not on, power on the virtual node in first loop
                 if ret != 0:
-                    self.log('WARNING', 'Node {} vBMC doesn\'t response, retry...'.
+                    self.log('WARNING', 'Node {} vBMC doesn\'t response, ret: {}, retry...'.
                              format(obj_node.get_name()))
                     time.sleep(int_gap)
                     continue
@@ -95,6 +95,7 @@ class T36713_idic_ControlNodePower(CBaseCase):
             if b_bmc_ready:
                 continue
             else:
-                self.result(FAIL, 'Node {} in unexpected status after T36713'.format(obj_node.get_name()))
+                self.result(FAIL, 'Node {} in unexpected status after T36713, last ipmitool retry ret: {}'.
+                            format(obj_node.get_name(), ret))
 
         CBaseCase.deconfig(self)
