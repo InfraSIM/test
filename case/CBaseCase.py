@@ -727,6 +727,14 @@ class CBaseCase(CLogger):
         return True
 
     def config_stack(self):
+        # Set vRackSystem logger
+        self.log('INFO', 'Build vRackSystem ...')
+        str_log_file = os.path.join(self.str_work_directory, 'vRackSystem_{}_{}.txt'.
+                                    format(self.str_case_name.split('_')[0],
+                                           time.strftime(Env.TIME_FORMAT_FILE)))
+        self.stack.rest.set_session_log(str_log_file)
+        self.stack.rest.set_logger(self.obj_logger)
+
         # Verify stack configuration
         self.env_stack_verify()
 
@@ -940,6 +948,9 @@ class CBaseCase(CLogger):
 
     def deconfig_stack(self):
         self.log('INFO', 'Deconfig stack ...')
+
+        self.log('INFO', 'Deconfig vRackSystem REST agent ...'.format())
+        self.stack.rest.reset()
 
         gevent.joinall([gevent.spawn(self.deconfig_node, obj_node)
                         for obj_node in self.stack.walk_node()])
