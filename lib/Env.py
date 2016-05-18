@@ -39,6 +39,8 @@ str_case_folder = os.path.join(str_root_folder, 'case')
 str_configure_package = 'configure'
 str_configure_folder = os.path.join(str_root_folder, str_configure_package)
 str_config_file = 'conf.xml'
+str_stack_file = ''
+str_stack_file_runtime = ''
 str_puffer_remote_root = ''
 str_testrail_root = ''
 str_testrail_username = ''
@@ -216,7 +218,9 @@ def load_stack(str_target_stack=''):
         # package_name is configure
         # all stack file should be started with stack_, followed
         # by stack name
+        global str_stack_file
         if os.path.isfile(str_target_stack):
+            str_stack_file = str_target_stack
             f_stack = file(str_target_stack)
             j_stack = json.load(f_stack)
         else:

@@ -414,11 +414,10 @@ class CTestExecutor(CLogger):
 
         # If run with virtual stack, copy stack configuration
         if self.str_stack:
-            if os.path.isfile(self.str_stack):
-                shutil.copy(self.str_stack, self.str_work_directory)
-            else:
-                shutil.copy(os.path.join(Env.str_configure_folder, 'stack_{}.json'.format(self.str_stack)),
-                            self.str_work_directory)
+            if os.path.isfile(Env.str_stack_file):
+                shutil.copy(Env.str_stack_file, self.str_work_directory)
+                Env.str_stack_file_runtime = os.path.abspath(os.path.join(self.str_work_directory,
+                                                                          os.path.basename(Env.str_stack_file)))
 
     def copy_release_folder_to_workdirectory(self):
         if self.b_valid == False:
