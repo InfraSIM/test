@@ -776,8 +776,8 @@ class CBaseCase(CLogger):
                             self.result(BLOCK, 'Node {} vBMC doesn\'t response IOL command, ret: {}'.
                                         format(obj_node.get_name(), ret))
                     else:
-                        self.log('WARNING', 'Node {} vBMC doesn\'t response, retry...'.
-                                 format(obj_node.get_name()))
+                        self.log('WARNING', 'Node {} vBMC doesn\'t response, ret: {}, retry...'.
+                                 format(obj_node.get_name(), ret))
                     time.sleep(int_gap)
                     continue
                 # System power is not on, do ipmi power on
