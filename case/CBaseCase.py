@@ -754,6 +754,8 @@ class CBaseCase(CLogger):
         #                             'make sure it is power on before test'.
         #                  format(obj_node.get_name()))
 
+        self.enable_iol_session()
+
         for obj_node in self.stack.walk_node():
             # Verify node information is complete
             str_bmc_ip = obj_node.get_bmc().get_ip()
@@ -761,6 +763,7 @@ class CBaseCase(CLogger):
                 self.result(BLOCK, 'Node {} BMC IP is not valid: {}'.
                          format(obj_node.get_name(), str_bmc_ip))
                 return False
+
             # Wait until vBMC's IPMI start to response
             # Retry every 3 seconds for 20 times
             b_bmc_ready = False
@@ -810,6 +813,28 @@ class CBaseCase(CLogger):
         self.log('INFO', 'Build stack done')
 
         return True
+
+    def enable_iol_session(self, list_node=None):
+        if list_node is None:
+            list_node = self.stack.walk_node()
+        gevent.joinall([gevent.spawn(self._enable_iol_session, obj_node)
+                        for obj_node in list_node])
+
+    def _enable_iol_session(self, obj_node):
+        if obj_node.str_sub_type != 'vNode':
+            self.log('WARNING', '{} is no virtual node, skip'.format(obj_node.get_name()))
+            return
+
+        # Set IOL session log
+        str_bmc_ip = obj_node.get_bmc().get_ip()
+        self.log('INFO', 'Build IOL on node {} IP {}...'.format(obj_node.get_name(), str_bmc_ip))
+        iol_session_log = 'IOL_{}_{}_{}.txt'.format(str_bmc_ip,
+                                                    self.str_case_name.split('_')[0],
+                                                    time.strftime(Env.TIME_FORMAT_FILE))
+        iol_session_log_path = os.path.join(self.str_work_directory, iol_session_log)
+        obj_node.get_bmc().ipmi.set_session_log(iol_session_log_path)
+
+        return
 
     def enable_ipmi_sim(self, list_node=None):
         '''
@@ -938,6 +963,10 @@ class CBaseCase(CLogger):
         obj_bmc_ssh = obj_node.get_bmc().ssh
         obj_bmc_ssh.reset()
         obj_bmc_ssh.disconnect()
+
+        # Deconfig BMC IOL session
+        obj_bmc_iol = obj_node.get_bmc().ipmi
+        obj_bmc_iol.reset()
 
     def deconfig_pdu(self, obj_pdu):
         self.log('INFO', 'Deconfig PDU {} ...'.format(obj_pdu.get_name()))
