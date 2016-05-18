@@ -39,7 +39,7 @@ class CStack(CDevice):
         self.dict_vracksystem = self.dict_config['vRackSystem']
         self.rest = APIClient(username=self.dict_vracksystem['username'],
                               password=self.dict_vracksystem['password'],
-                              session_log=False)
+                              session_log=True)
         self.rest_root = '{}://{}:{}{}'.format(self.dict_vracksystem['protocol'],
                                                self.dict_vracksystem['ip'],
                                                self.dict_vracksystem['port'],
