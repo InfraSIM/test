@@ -25,11 +25,13 @@ import os
 import logging
 import gevent
 import traceback
+import json
 
 import lib.Env as Env
 from lib.Logger import CLogger
 from idic.graph.Graph import CGraph
 from lib.Apps import is_valid_ip
+from idic.stack.Stack import CStack
 
 # Case result
 PASS = 'pass'
@@ -725,6 +727,9 @@ class CBaseCase(CLogger):
         return True
 
     def config_stack(self):
+        # Verify stack configuration
+        self.env_stack_verify()
+
         # Config stack ABS according to dict
         self.log('INFO', 'Build stack ...')
 
@@ -985,6 +990,117 @@ class CBaseCase(CLogger):
                     obj_device.set_logger(self.obj_logger)
             except Exception:
                 self.log('WARNING', 'CStack instance is not ready, can\'t set event log handler')
+
+    def env_stack_verify(self):
+        b_update = False
+        stack_config = self.stack.get_config()
+
+        # Assume:
+        # - verification depends on vRackSystem
+        # - vRackSystem is OK
+        # Or skip this verification and give a warning
+        # May leverage pyvmomi in future environment verification
+        # May have other hypervisor's verification
+
+        # {
+        #     "hyper1": "65"
+        # }
+        dict_hyper_name_id = {}
+
+        uri_esix = '{}/esxi/'.format(self.stack.rest_root)
+        rsp = self.stack.rest.send_get(uri_esix)
+        if rsp['status'] != 200:
+            self.log('WARNING', 'vRackSystem ({}) in unexpected status, GET esxi/ status: {}'.
+                     format(self.stack.rest_root, rsp['status']))
+            return
+
+        # {
+        #     "192.168.190.9": "65"
+        # }
+        dict_hyper_ip_id = {}
+        for dict_one_hyper in rsp['json']:
+            dict_hyper_ip_id[dict_one_hyper['esxiIP']] = dict_one_hyper['id']
+
+        for obj_hyper in self.stack.walk_hypervisor():
+            hyper_name = obj_hyper.get_name()
+            hyper_ip = obj_hyper.get_ip()
+            if hyper_ip in dict_hyper_ip_id:
+                dict_hyper_name_id[hyper_name] = dict_hyper_ip_id.get(hyper_ip)
+            else:
+                # Post this ESXi information and get id
+                payload = {
+                    "esxiIP": hyper_ip,
+                    "username": obj_hyper.get_username(),
+                    "password": obj_hyper.get_password()
+                }
+                rsp = self.stack.rest.send_post(uri_esix, payload)
+                if rsp['status'] != 201:
+                    raise Exception('Fail to create new ESXi {}:{}@{} in vRackSystem, response status: {}'.
+                                    format(obj_hyper.get_username(),
+                                           obj_hyper.get_password(),
+                                           hyper_ip, rsp['status']))
+
+                dict_hyper_name_id[hyper_name] = rsp['json']['id']
+
+        # Verify node IP
+        # Update ip dict first
+        # {
+        #     "hyper1": {
+        #         "vbmc_dell_r630_release-2-0_13.ova_1463454332.28": "172.31.128.6"
+        #     }
+        # }
+        dict_nodes_on_all_hyper = {}
+        for hyper_name, hyper_id in dict_hyper_name_id.items():
+            uri_vms = "{}/esxi/{}/getvms".format(self.stack.rest_root, hyper_id)
+            dict_nodes_on_all_hyper[hyper_name] = {}
+            rsp = self.stack.rest.send_get(uri_vms)
+            if rsp['status'] != 200:
+                raise Exception('Fail to get vms from hypervisor ID: {}, response status: {}'.
+                                format(hyper_id, rsp['status']))
+            list_vms = json.loads(rsp['json'])
+            for dict_vm in list_vms:
+                vm_name = dict_vm['name']
+                if not dict_vm['ip']:
+                    raise Exception('Node {} has no IP detected'.format(vm_name))
+                admin_ip = dict_vm['ip'][0]
+                dict_nodes_on_all_hyper[hyper_name][vm_name] = admin_ip
+
+        # Update configuration
+        for dict_rack in stack_config['vRacks']:
+            for dict_node in dict_rack['vNode']:
+                node_hyper = dict_node['hypervisor']
+                node_name = dict_node['name']
+                origin_bmc_ip = dict_node['bmc']['ip']
+                expect_bmc_ip = dict_nodes_on_all_hyper[node_hyper][node_name]
+
+                if origin_bmc_ip != expect_bmc_ip:
+                    self.log('WARNING', 'Node {} BMC IP is changed to {}'.format(node_name, expect_bmc_ip))
+                    dict_node['bmc']['ip'] = expect_bmc_ip
+                    b_update = True
+
+        if b_update:
+            self.log('INFO', 'Stack configuration update start')
+
+            # Update general environment variable: stack
+            Env.dict_stack = stack_config
+            Env.obj_stack = CStack(Env.dict_stack)
+            # Update case environment variable: stack
+            self.stack = Env.obj_stack
+            # Update configuration file
+            with open(Env.str_stack_file, 'w+') as fp:
+                fp.write(json.dumps(Env.dict_stack, indent=4))
+            with open(Env.str_stack_file_runtime, 'w+') as fp:
+                fp.write(json.dumps(Env.dict_stack, indent=4))
+
+            self.log('INFO', 'Stack configuration update is done')
+        else:
+            self.log('INFO', 'Stack configuration verification is done, no update')
+
+    def env_update(self, key, value):
+        if key not in Env.__dict__:
+            self.log('WARNING', 'Fail to find {} in Environment Variable')
+            return
+        setattr(Env, key, value)
 
 if __name__ == '__main__':
     print 'This module is not runnable!'

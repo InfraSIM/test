@@ -61,6 +61,14 @@ class T33273_idic_vPDUValidPassword(CBaseCase):
                 self.log('INFO', 'Wait 10 seconds for power on ...')
                 time.sleep(10)
 
+        # Wait for node boot, 60s after last node boot
+        self.log('INFO', 'Wait 60 seconds after last node power on to get IP ...')
+        time.sleep(60)
+        self.env_stack_verify()
+
+        for obj_rack in self.stack.get_rack_list():
+            obj_hyper = self.stack.hypervisors[obj_rack.get_hypervisor()]
+            for obj_node in obj_rack.get_node_list():
                 str_power_status = self.stack.rest_get_node_power_status(
                     obj_hyper.get_ip(),
                     obj_node.get_name()
@@ -74,7 +82,6 @@ class T33273_idic_vPDUValidPassword(CBaseCase):
         self.log('INFO', 'End Test...')
 
     def deconfig(self):
-
         for obj_node in self.stack.walk_node():
 
             # Wait until vBMC's IPMI start to response

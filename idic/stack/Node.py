@@ -27,6 +27,7 @@ class CNode(CDevice):
 
         self.name = self.dict_config.get('name', '')
         self.datastore = self.dict_config.get('datastore', '')
+        self.hypervisor = self.dict_config.get('hypervisor', '')
 
     def get_config(self):
         return self.dict_config
@@ -42,6 +43,9 @@ class CNode(CDevice):
 
     def get_bmc(self):
         return self.bmc
+
+    def get_hypervisor(self):
+        return self.hypervisor
 
     def power_on(self):
         if not self.power:
