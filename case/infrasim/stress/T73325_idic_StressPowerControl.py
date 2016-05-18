@@ -61,6 +61,11 @@ class T73325_idic_StressPowerControl(CBaseCase):
                          format(self.curr+1, self.retry, obj_node.get_name()))
             time.sleep(5)
 
+        # Wait for node boot, 60s after last node boot
+        self.log('INFO', 'Wait 60 seconds after last node power on to get IP ...')
+        time.sleep(60)
+        self.env_stack_verify()
+
         # For all nodes, check status
         for obj_node in self.stack.walk_node():
             # Wait until ipmi stack response
