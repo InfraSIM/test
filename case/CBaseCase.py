@@ -942,7 +942,10 @@ class CBaseCase(CLogger):
         obj_ssh.set_log(1, True)
         if not obj_ssh.is_connected():
             obj_ssh.connect()
-        str_rsp = obj_ssh.send_command_wait_string('help' + chr(13), '[CONFIG] [HELP] [IP] [MAP] [PASS] [PASSWORD] [SAVE] [VPDU]', b_with_buff=False)
+        obj_ssh.send_command_wait_string(str_command='help' + chr(13),
+                                         wait='[CONFIG] [HELP] [IP] [MAP] [PASS] [PASSWORD] [SAVE] [VPDU] \r\n(vPDU)',
+                                         int_time_out=10,
+                                         b_with_buff=False)
 
         return
 
