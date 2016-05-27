@@ -11,9 +11,13 @@ from lib.Device import CDevice
 from idic.stack.Hypervisor import CHypervisor
 from idic.stack.Rack import CRack
 from lib.restapi import APIClient
-from lib.Apps import is_valid_ip
+from lib.Apps import is_valid_ip, dhcp_query_ip
+from lib.SSH import CSSH
+from lib.IOL import CIOL
 
 import json
+import time
+import os
 
 
 class CStack(CDevice):
@@ -62,11 +66,23 @@ class CStack(CDevice):
     def get_hypervisor_count(self):
         return len(self.hypervisors)
 
+    def get_hypervisor(self, hypervisor_name):
+        for hypervisor in self.walk_hypervisor():
+            if hypervisor.get_name() == hypervisor_name:
+                return hypervisor
+        return None
+
     def get_rack_list(self):
         return self.racks.values()
 
     def get_rack_count(self):
         return len(self.racks)
+
+    def get_rack(self, rack_name):
+        for rack in self.walk_rack():
+            if rack.get_name() == rack_name:
+                return rack
+        return None
 
     def have_rack(self):
         '''
@@ -174,8 +190,7 @@ class CStack(CDevice):
         return None
 
     # ------------------------------
-    # vRack access via vRackSystem,
-    # i.e. via hypervisor
+    # vRack access via vRackSystem
     # ------------------------------
 
     def rest_get_hypervisor_id(self, str_hypervisor_ip):
@@ -200,6 +215,128 @@ class CStack(CDevice):
                 return dict_vm['status']
         raise Exception('Node ({}) is not managed by hypervisor (IP: {})'.
                         format(str_node_name, str_hyperisor_ip))
+
+    # ------------------------------
+    # vRack access via ESXi vim-cmd
+    # ------------------------------
+
+    def boot_to_disk(self, obj_node, disk_image):
+        '''
+        Try to connect to host, if fail, reconfig to boot from disk, then connect
+        '''
+
+        dtstore = obj_node.get_datastore()
+        vm_name = obj_node.get_name()
+        hypervisor = self.get_hypervisor(obj_node.get_hypervisor())
+
+        # Mount drive
+        vm_id = hypervisor.get_vmid(dtstore, vm_name)
+        self.log('INFO', 'VM {} ID is got: {}'.format(obj_node.get_name(), vm_id))
+
+        hypervisor.power_off(vm_id)
+        self.log('INFO', 'VM {} powering off, wait 10s ...'.format(obj_node.get_name()))
+        time.sleep(10)
+
+        hypervisor.drive_delete_all(dtstore, vm_name)
+        image_path = hypervisor.search_datastore(disk_image)[0]
+        hypervisor.drive_add(dtstore, vm_name, image_path)
+
+        hypervisor.power_on(vm_id)
+        self.log('INFO', 'VM {} powering on, wait up to 90s ...'.format(obj_node.get_name()))
+        time_start = time.time()
+        while time.time() - time_start < 90:
+            ip = hypervisor.get_vm_ip(vm_id)
+            if ip:
+                if obj_node.get_bmc().get_ip() == ip:
+                    obj_node.get_bmc().ssh.connect()
+                    break
+                else:
+                    obj_node.get_bmc().set_ip(ip)
+                    obj_node.get_bmc().ssh = CSSH(ip, 'root', 'root')
+                    obj_node.get_bmc().ssh.connect()
+                    bmc_user = obj_node.get_bmc().get_username()
+                    bmc_pass = obj_node.get_bmc().get_password()
+                    obj_node.get_bmc().ipmi = CIOL(str_ip=ip, str_user=bmc_user, str_password=bmc_pass)
+            time.sleep(10)
+
+        self.log('INFO', 'VM {} booting host to disk, wait up to 40s ...'.format(obj_node.get_name()))
+        # For ipmi_sim to boot
+        time.sleep(30)
+        ret, rsp = obj_node.get_bmc().ipmi.ipmitool_standard_cmd('chassis bootdev disk')
+        if ret != 0:
+            raise Exception('Fail to set VM {} to boot from disk'.format(obj_node.get_name()))
+        ret, rsp = obj_node.get_bmc().ipmi.ipmitool_standard_cmd('chassis power cycle')
+        if ret != 0:
+            raise Exception('Fail to power cycle VM {}'.format(obj_node.get_name()))
+        # For host to boot
+        time.sleep(10)
+
+        return
+
+    def get_host_ssh(self, obj_node, username, password, **kwargs):
+        '''
+        Build a SSH connection to host in virtual node
+        '''
+        if 'qemu_ip' in kwargs:
+            self.log('INFO', 'Build host SSH to {}@{}'.format(username, kwargs['qemu_ip']))
+            conn = CSSH(ip=kwargs['qemu_ip'], username=username, password=password, port=kwargs.get('port', 22))
+            conn.connect()
+            return conn
+
+        # To get host's IP address:
+        #     - Get MAC
+        #     - Get IP via DHCP lease on DHCP server
+        #     - Check if IP is available
+        #     - SSH to host
+        if 'dhcp_server' in kwargs and 'dhcp_user' in kwargs and 'dhcp_pass' in kwargs:
+            self.log('INFO', 'Query host IP from DHCP server {} ...'.format(kwargs['dhcp_server']))
+
+            # Get IP
+            rsp_qemu = obj_node.get_bmc().ssh.remote_shell('ps aux | grep qemu')
+            if rsp_qemu['exitcode'] != 0:
+                raise Exception('Fail to get node {} qemu MAC address'.format(obj_node.get_name()))
+            qemu_mac = rsp_qemu['stdout'].split('mac=')[1].split(' ')[0].lower()
+            self.log('INFO', 'Node {} host MAC address is: {}'.format(obj_node.get_name(), qemu_mac))
+
+            self.log('INFO', 'Wait node {} host IP address in up to 300s ...'.format(obj_node.get_name()))
+            time_start = time.time()
+            qemu_ip = ''
+            while time.time() - time_start < 300:
+                try:
+                    qemu_ip = dhcp_query_ip(server=kwargs['dhcp_server'],
+                                            username=kwargs['dhcp_user'],
+                                            password=kwargs['dhcp_pass'],
+                                            mac=qemu_mac)
+                    if qemu_ip == obj_node.get_bmc().get_ip():
+                        self.log('WARNING', 'IP lease for mac {} is {} to node {}\'s BMC, '
+                                            'waiting for host IP lease, retry after 30s ...'.
+                                 format(qemu_mac, qemu_ip, obj_node.get_name()))
+                        time.sleep(30)
+                        continue
+                    rsp = os.system('ping -c 1 {}'.format(qemu_ip))
+                    if rsp != 0:
+                        self.log('WARNING', 'Find an IP {} lease for mac {} on node {}, '
+                                            'but this IP address is not available, retry after 30s ...'.
+                                 format(qemu_ip, qemu_mac, obj_node.get_name()))
+                        time.sleep(30)
+                        continue
+                    else:
+                        self.log('INFO', 'Node {} host get IP {}'.format(obj_node.get_name(), qemu_ip))
+                        break
+                except Exception, e:
+                    self.log('WARNING', 'Fail to get node {}\'s host IP: {}'.format(obj_node.get_name(), e))
+                    time.sleep(30)
+
+            if not qemu_ip:
+                raise Exception('Fail to get node {}\'s host IP in 300s'.format(obj_node.get_name()))
+
+            conn = CSSH(ip=qemu_ip,
+                        username=self.data['host_username'],
+                        password=self.data['host_password'],
+                        port=kwargs.get('port', 22))
+            conn.connect()
+            return conn
+
 
 if __name__ == '__main__':
     '''

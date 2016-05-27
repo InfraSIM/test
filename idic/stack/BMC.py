@@ -40,6 +40,9 @@ class CBMC(CDevice):
     def get_ip(self):
         return self.ip
 
+    def set_ip(self, ip):
+        self.ip = ip
+
     def get_username(self):
         return self.username
 

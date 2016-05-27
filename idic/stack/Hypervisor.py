@@ -10,6 +10,7 @@ Created on Dec 22, 2015
 from lib.Device import CDevice
 from lib.SSH import CSSH
 from lib.Apps import with_connect
+import re
 
 
 class CHypervisor(CDevice):
@@ -63,9 +64,7 @@ class CHypervisor(CDevice):
     def power_on(self, vmid):
         self.log('INFO', 'Power on VM, ID: {} ...'.format(vmid))
         rsp = self.ssh.remote_shell("vim-cmd vmsvc/power.on {0}".format(vmid))
-        if rsp['exitcode'] == 1:
-            self.log('INFO', 'VM, ID: {} is already powered on'.format(vmid))
-        elif rsp['exitcode'] == 0:
+        if rsp['exitcode'] == 0:
             self.log('INFO', 'Power on VM, ID: {} is done'.format(vmid))
         else:
             self.log('WARNING', 'Fail to power on VM, ID: {}\nExit code: {}\nstdout:\n{}\nstderr:\n{}'.
@@ -77,9 +76,7 @@ class CHypervisor(CDevice):
     def power_off(self, vmid):
         self.log('INFO', 'Power off VM, ID: {} ...'.format(vmid))
         rsp = self.ssh.remote_shell("vim-cmd vmsvc/power.off {0}".format(vmid))
-        if rsp['exitcode'] == 1:
-            self.log('INFO', 'VM, ID: {} is already powered off'.format(vmid))
-        elif rsp['exitcode'] == 0:
+        if rsp['exitcode'] == 0:
             self.log('INFO', 'Power off VM, ID: {} is done'.format(vmid))
         else:
             self.log('WARNING', 'Fail to power off VM, ID: {}\nExit code: {}\nstdout:\n{}\nstderr:\n{}'.
@@ -97,7 +94,7 @@ class CHypervisor(CDevice):
         disks = rsp['stdout'].split('\n')
         disk_to_remove = []
         for disk in disks:
-            if not disk.endswith('flat.vmdk'):
+            if disk.endswith('vmdk') and 'flat' not in disk:
                 disk_to_remove.append(disk)
 
         for disk in disk_to_remove:
@@ -127,11 +124,12 @@ class CHypervisor(CDevice):
         rsp = self.ssh.remote_shell("vim-cmd vmsvc/device.diskaddexisting {0} {1} 0 1".format(vmid, new_vmdk))
         if rsp['exitcode'] == 0:
             self.log('INFO', 'VM {} ID {} on datastore {} add disk {} is done'.
-                     format(vm_name, vmid, new_vmdk))
+                     format(vm_name, vmid, dtstore, new_vmdk))
         else:
-            self.log('WARNING', 'VM {} ID {} on datastore {} add disk {} faile\n'
+            self.log('WARNING', 'VM {} ID {} on datastore {} add disk {} fail\n'
                                 'Exit code: {}\nstdout:\n{}\nstderr:\n{}'.
-                     format(vm_name, vmid, new_vmdk))
+                     format(vm_name, vmid, dtstore, new_vmdk,
+                            rsp['exitcode'], rsp['stdout'], rsp['stderr']))
         return
 
     @with_connect('ssh')
@@ -143,3 +141,17 @@ class CHypervisor(CDevice):
             self.log('WARNING', 'Fail to query {} on hypervisor {}'.format(name, self.get_name()))
             return None
 
+    @with_connect('ssh')
+    def get_vm_ip(self, vmid):
+        p_ip = r'(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})'
+
+        self.log('INFO', 'Get IP address for VM ID {}'.format(vmid))
+        rsp = self.ssh.remote_shell("vim-cmd vmsvc/get.summary {} | grep ipAddress".format(vmid))
+        if rsp['exitcode'] == 0:
+            p = re.search(p_ip, rsp['stdout'])
+            if p:
+                self.log('INFO', 'VM ID {} IP is {}'.format(vmid, p.group(1)))
+                return p.group(1)
+        else:
+            self.log('WARNING', 'Fail to get VM ID {}\'s IP'.format(vmid))
+            return None
