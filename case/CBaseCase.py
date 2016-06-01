@@ -884,29 +884,54 @@ class CBaseCase(CLogger):
         '''
         if list_node is None:
             list_node = self.stack.walk_node()
-        gevent.joinall([gevent.spawn(self._enable_bmc_ssh, obj_node)
+        gevent.joinall([gevent.spawn(self._enable_ssh, obj_node)
                         for obj_node in list_node])
 
-    def _enable_bmc_ssh(self, obj_node):
-        if obj_node.str_sub_type != 'vNode':
-            self.log('WARNING', '{} is not virtual node, skip'.format(obj_node.get_name()))
+    def enable_hypervisor_ssh(self, list_hypervisor=None):
+        '''
+        Prepare SSH link to all hypervisor's port 22 in list
+        If list is None (not set by any value), it will try to apply it for every hypervisor
+        '''
+        if list_hypervisor is None:
+            list_hypervisor = self.stack.walk_hypervisor()
+        gevent.joinall([gevent.spawn(self._enable_ssh, obj_hypervisor)
+                        for obj_hypervisor in list_hypervisor])
+
+    def _enable_ssh(self, obj_device):
+        if obj_device.str_sub_type == 'vNode':
+            self.log('INFO', 'Build BMC SSH on node {} ...'.format(obj_device.get_name()))
+
+            # SSH to node BMC on port 22
+            str_ip = obj_device.get_bmc().get_ip()
+            str_ssh_log = os.path.join(self.str_work_directory, 'BMC_SSH_{}_{}_{}.txt'.
+                                       format(str_ip,
+                                              self.str_case_name.split('_')[0],
+                                              time.strftime(Env.TIME_FORMAT_FILE)))
+
+            obj_ssh = obj_device.get_bmc().ssh
+            str_prompt = '~$'
+        elif obj_device.str_sub_type == 'hypervisor':
+            self.log('INFO', 'Build hypervisor SSH on {} ...'.format(obj_device.get_ip()))
+
+            str_ip = obj_device.get_ip()
+            str_ssh_log = os.path.join(self.str_work_directory, 'HYPERVISOR_SSH_{}_{}_{}.txt'.
+                                       format(str_ip,
+                                              self.str_case_name.split('_')[0],
+                                              time.strftime(Env.TIME_FORMAT_FILE)))
+
+            obj_ssh = obj_device.ssh
+            str_prompt = ':~]'
+        else:
+            self.log('WARNING', 'Not supporting SSH to {}: {}'.
+                     format(obj_device.str_sub_type, obj_device.get_name()))
             return
 
-        self.log('INFO', 'Build BMC SSH on node {} ...'.format(obj_node.get_name()))
-
-        # SSH to node BMC on port 22
-        str_bmc_ip = obj_node.get_bmc().get_ip()
-        str_bmc_ssh_log = os.path.join(self.str_work_directory, 'BMC_SSH_{}_{}_{}.txt'.
-                                   format(str_bmc_ip,
-                                          self.str_case_name.split('_')[0],
-                                          time.strftime(Env.TIME_FORMAT_FILE)))
-        obj_ssh = obj_node.get_bmc().ssh
         obj_ssh.set_logger(self.obj_logger)
-        obj_ssh.set_raw_log_file(str_bmc_ssh_log)
+        obj_ssh.set_raw_log_file(str_ssh_log)
         obj_ssh.set_log(1, True)
         if not obj_ssh.is_connected():
             obj_ssh.connect()
-        obj_ssh.send_command_wait_string(chr(13), '~$', b_with_buff=False)
+        obj_ssh.send_command_wait_string(chr(13), str_prompt, b_with_buff=False)
 
         return
 
@@ -961,9 +986,20 @@ class CBaseCase(CLogger):
         gevent.joinall([gevent.spawn(self.deconfig_pdu, obj_pdu)
                         for obj_pdu in self.stack.walk_pdu()])
 
+        gevent.joinall([gevent.spawn(self.deconfig_hypervisor, obj_hypervisor)
+                        for obj_hypervisor in self.stack.walk_hypervisor()])
+
         self.log('INFO', 'Deconfig stack done')
 
         return True
+
+    def deconfig_hypervisor(self, obj_hypervisor):
+        self.log('INFO', 'Deconfig hypervisor {} ...'.format(obj_hypervisor.get_name()))
+
+        # Deconfig SSH shell
+        obj_ssh = obj_hypervisor.ssh
+        obj_ssh.reset()
+        obj_ssh.disconnect()
 
     def deconfig_node(self, obj_node):
         self.log('INFO', 'Deconfig node {} ...'.format(obj_node.get_name()))
@@ -1037,6 +1073,7 @@ class CBaseCase(CLogger):
     def env_stack_verify(self):
         b_update = False
         stack_config = self.stack.get_config()
+        list_node_name = [obj_node.get_name() for obj_node in self.stack.walk_node()]
 
         # Assume:
         # - verification depends on vRackSystem
@@ -1103,6 +1140,10 @@ class CBaseCase(CLogger):
             list_vms = json.loads(rsp['json'])
             for dict_vm in list_vms:
                 vm_name = dict_vm['name']
+                # Skip VMs not in target stack
+                if vm_name not in list_node_name:
+                    continue
+                # Check node in this stack
                 if not dict_vm['ip']:
                     raise Exception('Node {} has no IP detected'.format(vm_name))
                 admin_ip = dict_vm['ip'][0]

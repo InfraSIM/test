@@ -6,7 +6,9 @@ Copyright @ 2015 EMC Corporation All Rights Reserved
 import types
 import re
 import math
+import json
 from functools import wraps
+from lib.SSH import CSSH
 
 
 def convert_short_to_lsb_msb(data):
@@ -17,10 +19,12 @@ def convert_short_to_lsb_msb(data):
     str_data_msb = '0x' + str_data_msb
     return str_data_lsb, str_data_msb
 
+
 def clear_list(list_data): 
     while(list_data != []):
         list_data.pop()
     return list_data
+
 
 def strip_color_code(str):
     '''
@@ -42,7 +46,8 @@ def strip_color_code(str):
     [A-Za-z] # a letter
     """, re.VERBOSE).sub
     return strip_ANSI_escape_sequences_sub("", str)
-    
+
+
 def byte_in_response(list_response, index):
     '''
     ************************************************
@@ -68,7 +73,8 @@ def byte_in_response(list_response, index):
         for i in range(len(index)):
             list_bytes[i] = byte_in_response(list_response, index[i])
         return list_bytes
-    
+
+
 def bit_in_response(list_response, byte_index, bit_index):
     '''
     ************************************************
@@ -110,7 +116,8 @@ def bit_in_response(list_response, byte_index, bit_index):
             return byte >> bit_index & 1
     else:
         raise Exception('unrecognized type of bit_index: %s'%type(bit_index))
-    
+
+
 def int_to_byte(int_a, str_format = 'lsb', int_byte_length = 2):
     '''
     ************************************************
@@ -152,7 +159,8 @@ def int_to_byte(int_a, str_format = 'lsb', int_byte_length = 2):
         if int_a != 0:
             print "Warning: int overflow!"
         return list_byte
-   
+
+
 def byte_to_int(list_byte, str_format = 'lsb'):
     '''
     ************************************************
@@ -221,6 +229,7 @@ def split_list(list_a, int_len):
         
     return list_b
 
+
 def str_to_ascii(str_a):
     '''
     ************************************************
@@ -240,7 +249,8 @@ def str_to_ascii(str_a):
         return map(lambda a:ord(a), str_a)
     else:
         raise Exception('FAIL', 'Input parameter is not a valid string')
-    
+
+
 def tolerance(num_a, num_refer, num_diff, str_type = 'absolute'):
     '''
     ************************************************
@@ -293,7 +303,8 @@ def tolerance(num_a, num_refer, num_diff, str_type = 'absolute'):
             return True
         else:
             return False
- 
+
+
 def ascii_to_char(int_ascii_code):
     '''
     ************************************************
@@ -314,6 +325,7 @@ def ascii_to_char(int_ascii_code):
     if int_ascii_code < 0 or int_ascii_code > 127:
         raise Exception("FAIL", "Tbe input paramter is out of range (0-127).")
     return chr(int_ascii_code)
+
 
 def is_valid_ip(ip):
     '''
@@ -345,7 +357,8 @@ def is_valid_ip(ip):
             return True
     else:
         return False
-        
+
+
 def ip_str(ip):
     '''
     [Author  ]: Forrest.Gu@emc.com
@@ -364,7 +377,8 @@ def ip_str(ip):
         str_ip = '.'.join([str(i) for i in ip])
         
     return str_ip
-        
+
+
 def ip_digit_list(ip):
     '''
     [Author  ]: Forrest.Gu@emc.com
@@ -385,6 +399,7 @@ def ip_digit_list(ip):
         lst_ip = ip
     
     return lst_ip
+
 
 class SEL():
     @classmethod
@@ -479,6 +494,7 @@ class SEL():
 
         return True
 
+
 class with_connect(object):
     '''
     This is a decorator to detect if an interface has been connected
@@ -521,3 +537,74 @@ class with_connect(object):
                 else:
                     raise AttributeError('Object {} has no function is_connected'.format(self._conn))
         return wrapper
+
+
+def arp_query_ip(server, username, password, mac):
+    '''
+    Get IP address according to the MAC address, from target
+    server, wich credential username:password
+    :param server: server name
+    :param username: server username
+    :param password: server password
+    :param mac: MAC address of the target node
+    :return: IP address of the target node
+    '''
+    conn = CSSH(ip=server,
+                username=username,
+                password=password)
+    if not conn.connect():
+        raise Exception('Fail to connect to server {} to query IP'.format(server))
+
+    rsp = conn.remote_shell('arp -an | grep {}'.format(mac))
+    if rsp['exitcode'] != 0:
+        conn.disconnect()
+        raise Exception('Fail to get response from server {} to query IP\n{}'.
+                        format(server, json.dumps(rsp, indent=4)))
+
+    p_ip = r'\((\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})\)'
+    list_info = rsp['stdout'].split('\n')
+    list_ip = []
+    for each_info in list_info:
+        p = re.search(p_ip, each_info)
+        if p:
+            if is_valid_ip(p.group(1)):
+                list_ip.append(p.group(1))
+    if len(list_ip) != 1:
+        conn.disconnect()
+        raise Exception('MAC conflict for IP: {}'.format(list_ip))
+    else:
+        conn.disconnect()
+        return list_ip[0]
+
+
+def dhcp_query_ip(server, username, password, mac):
+    '''
+    Get IP address according to the MAC address, from target
+    server, wich credential username:password
+    :param server: server name
+    :param username: server username
+    :param password: server password
+    :param mac: MAC address of the target node
+    :return: IP address of the target node
+    '''
+    conn = CSSH(ip=server,
+                username=username,
+                password=password)
+    if not conn.connect():
+        raise Exception('Fail to connect to server {} to query IP'.format(server))
+
+    rsp = conn.remote_shell('grep -A 2 -B 7 "{}" /var/lib/dhcp/dhcpd.leases | grep "lease" | tail -n 1'.format(mac))
+    if rsp['exitcode'] != 0:
+        conn.disconnect()
+        raise Exception('Fail to get response from server {} to query IP\n{}'.
+                        format(server, json.dumps(rsp, indent=4)))
+    if not rsp['stdout']:
+        conn.disconnect()
+        raise Exception('Find no DHCP lease information for MAC: {}'.format(mac))
+
+    p_ip = r'(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})'
+    p = re.search(p_ip, rsp['stdout'])
+    if p:
+        if is_valid_ip(p.group(1)):
+            conn.disconnect()
+            return p.group(1)

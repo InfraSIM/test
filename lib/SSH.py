@@ -372,6 +372,8 @@ class CSSH(CLogger, CLogTool):
 
         try:
             stdin, stdout, stderr = self.h_ssh.exec_command(shell_cmd)
+            while not stdout.channel.exit_status_ready():
+                pass
         except paramiko.SSHException:
             self.log('ERROR', 'SSH exception when execute command on remote shell: {}'.
                      format(shell_cmd))
