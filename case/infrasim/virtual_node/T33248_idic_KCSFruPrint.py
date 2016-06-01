@@ -20,21 +20,17 @@ class T33248_idic_KCSFruPrint(CBaseCase):
     def test(self):
         # Because disk vmdk file will be locked by hypervisor, this
         # case only take one node and test.
-        try:
-            obj_node = self.stack.walk_node().next()
-        except StopIteration:
-            self.result(BLOCK, 'No node in stack at all')
-            return
+        self.test_node = self.stack.random_node()
 
         # Mount disk vmdk to virtual node
         # Boot all nodes QEMU host to disk
         try:
-            self.stack.boot_to_disk(obj_node, disk_image=self.data['disk_image'])
+            self.stack.boot_to_disk(self.test_node, disk_image=self.data['disk_image'])
         except Exception, e:
             self.result(BLOCK, 'Fail to boot node to disk: {}'.format(e))
             return
         try:
-            qemu_conn = self.stack.get_host_ssh(obj_node,
+            qemu_conn = self.stack.get_host_ssh(self.test_node,
                                                 username=self.data['host_username'],
                                                 password=self.data['host_password'],
                                                 dhcp_server=self.data['dhcp_server'],
@@ -50,16 +46,18 @@ class T33248_idic_KCSFruPrint(CBaseCase):
         rsp = qemu_conn.remote_shell('echo {} | sudo -S ipmitool fru print'.format(self.data['host_password']))
         if 'Product Name' not in rsp['stdout']:
             self.result(FAIL, 'Node {} host get "frp print" result on KCS is unexpected, rsp\n{}'.
-                        format(obj_node.get_name(), json.dumps(rsp, indent=4)))
+                        format(self.test_node.get_name(), json.dumps(rsp, indent=4)))
 
         rsp = qemu_conn.remote_shell('echo {} | sudo -S ipmitool fru print 0'.format(self.data['host_password']))
         if 'Product Name' not in rsp['stdout']:
             self.result(FAIL, 'Node {} host get "frp print 0" result on KCS is unexpected\n{}'.
-                        format(obj_node.get_name(), json.dumps(rsp, indent=4)))
+                        format(self.test_node.get_name(), json.dumps(rsp, indent=4)))
 
         qemu_conn.disconnect()
     
     def deconfig(self):
-        # To do: Case specific deconfig
+        # Umount ubuntu disk image and recover node
+        self.stack.recover_disk(self.test_node)
+
         CBaseCase.deconfig(self)
 

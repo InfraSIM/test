@@ -18,6 +18,7 @@ from lib.IOL import CIOL
 import json
 import time
 import os
+import random
 
 
 class CStack(CDevice):
@@ -189,6 +190,30 @@ class CStack(CDevice):
                     return obj_node
         return None
 
+    def random_node(self):
+        '''
+        Return a random node
+        '''
+        try:
+            self.walk_node().next()
+        except StopIteration:
+            self.log('WARNING', 'No node in stack at all')
+            return None
+
+        list_nodes = []
+        for node in self.walk_node():
+            list_nodes.append(node)
+
+        the_node = random.choice(list_nodes)
+
+        self.log('INFO', '*'*80)
+        self.log('INFO', '*   Life is like a box of chocolates, you never know what you\'re gonna get.    *')
+        self.log('INFO', '*                                               - Forrest                      *')
+        self.log('INFO', '*   The node to test is: {}*'.format(the_node.get_name().ljust(54)))
+        self.log('INFO', '*'*80)
+
+        return the_node
+
     # ------------------------------
     # vRack access via vRackSystem
     # ------------------------------
@@ -237,7 +262,7 @@ class CStack(CDevice):
         self.log('INFO', 'VM {} powering off, wait 10s ...'.format(obj_node.get_name()))
         time.sleep(10)
 
-        hypervisor.drive_delete_all(dtstore, vm_name)
+        hypervisor.drive_delete(dtstore, vm_name, 0, 1)
         image_path = hypervisor.search_datastore(disk_image)[0]
         hypervisor.drive_add(dtstore, vm_name, image_path)
 
@@ -328,15 +353,54 @@ class CStack(CDevice):
                     time.sleep(30)
 
             if not qemu_ip:
-                raise Exception('Fail to get node {}\'s host IP in 300s'.format(obj_node.get_name()))
+                raise Exception('Fail to get node {}\'s host IP in 300s, '
+                                'check if vSwith\'s promiscuous mode is "Accept"'.
+                                format(obj_node.get_name()))
 
             conn = CSSH(ip=qemu_ip,
-                        username=self.data['host_username'],
-                        password=self.data['host_password'],
+                        username=kwargs.get('host_username', 'june'),
+                        password=kwargs.get('host_password', '111111'),
                         port=kwargs.get('port', 22))
             conn.connect()
             return conn
 
+    def recover_disk(self, obj_node):
+
+        dtstore = obj_node.get_datastore()
+        vm_name = obj_node.get_name()
+        hypervisor = self.get_hypervisor(obj_node.get_hypervisor())
+
+        # Mount drive
+        vm_id = hypervisor.get_vmid(dtstore, vm_name)
+        self.log('INFO', 'VM {} ID is got: {}'.format(obj_node.get_name(), vm_id))
+
+        hypervisor.power_off(vm_id)
+        self.log('INFO', 'VM {} powering off, wait 10s ...'.format(obj_node.get_name()))
+        time.sleep(10)
+
+        hypervisor.drive_delete(dtstore, vm_name, 0, 1)
+        image_path = hypervisor.search_datastore('{}_1.vmdk'.format(obj_node.get_name()))[0]
+        hypervisor.drive_add(dtstore, vm_name, image_path)
+
+        hypervisor.power_on(vm_id)
+        self.log('INFO', 'VM {} powering on, wait up to 90s ...'.format(obj_node.get_name()))
+        time_start = time.time()
+        while time.time() - time_start < 90:
+            ip = hypervisor.get_vm_ip(vm_id)
+            if ip:
+                if obj_node.get_bmc().get_ip() == ip:
+                    obj_node.get_bmc().ssh.connect()
+                    break
+                else:
+                    obj_node.get_bmc().set_ip(ip)
+                    obj_node.get_bmc().ssh = CSSH(ip, 'root', 'root')
+                    obj_node.get_bmc().ssh.connect()
+                    bmc_user = obj_node.get_bmc().get_username()
+                    bmc_pass = obj_node.get_bmc().get_password()
+                    obj_node.get_bmc().ipmi = CIOL(str_ip=ip, str_user=bmc_user, str_password=bmc_pass)
+            time.sleep(10)
+
+        return
 
 if __name__ == '__main__':
     '''

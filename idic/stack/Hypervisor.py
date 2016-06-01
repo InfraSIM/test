@@ -117,18 +117,44 @@ class CHypervisor(CDevice):
         return
 
     @with_connect('ssh')
-    def drive_add(self, dtstore, vm_name, new_vmdk):
+    def drive_delete(self, dtstore, vm_name, controller=0, unit=1):
         vmid = self.get_vmid(dtstore, vm_name)
 
-        self.log('INFO', 'Add drive for VM ID {}, image: {} ...'.format(vmid, new_vmdk))
-        rsp = self.ssh.remote_shell("vim-cmd vmsvc/device.diskaddexisting {0} {1} 0 1".format(vmid, new_vmdk))
+        self.log('INFO', 'Delete drive {}.{} of VM {} ID {} on datastore {}...'.
+                 format(controller, unit, vm_name, vmid, dtstore))
+
+        rsp = self.ssh.remote_shell("vim-cmd vmsvc/device.diskremove {} {} {} true".
+                                    format(vmid, controller, unit))
+
         if rsp['exitcode'] == 0:
-            self.log('INFO', 'VM {} ID {} on datastore {} add disk {} is done'.
-                     format(vm_name, vmid, dtstore, new_vmdk))
+            self.log('INFO', 'VM {} ID {} on datastore {} disk {}.{} is deleted'.
+                     format(vm_name, vmid, dtstore, controller, unit))
+        elif rsp['exitcode'] == 255:
+            self.log('INFO', 'VM {} ID {} on datastore {} disk {} is not found'.
+                     format(vm_name, vmid, dtstore, controller, unit))
         else:
-            self.log('WARNING', 'VM {} ID {} on datastore {} add disk {} fail\n'
+            self.log('WARNING', 'VM {} ID {} on datastore {} disk {} delete fail\n'
                                 'Exit code: {}\nstdout:\n{}\nstderr:\n{}'.
-                     format(vm_name, vmid, dtstore, new_vmdk,
+                     format(vm_name, vmid, dtstore, controller, unit,
+                            rsp['exitcode'], rsp['stdout'], rsp['stderr']))
+
+        return
+
+    @with_connect('ssh')
+    def drive_add(self, dtstore, vm_name, new_vmdk, controller=0, unit=1):
+        vmid = self.get_vmid(dtstore, vm_name)
+
+        self.log('INFO', 'Add drive on scsi {}.{} for VM ID {}, image: {} ...'.
+                 format(controller, unit, vmid, new_vmdk))
+        rsp = self.ssh.remote_shell("vim-cmd vmsvc/device.diskaddexisting {0} {1} {2} {3}".
+                                    format(vmid, new_vmdk, controller, unit))
+        if rsp['exitcode'] == 0:
+            self.log('INFO', 'VM {} ID {} on datastore {} add disk {} on scsi {}.{} is done'.
+                     format(vm_name, vmid, dtstore, new_vmdk, controller, unit))
+        else:
+            self.log('WARNING', 'VM {} ID {} on datastore {} add disk {}  on scsi {}.{} fail\n'
+                                'Exit code: {}\nstdout:\n{}\nstderr:\n{}'.
+                     format(vm_name, vmid, dtstore, new_vmdk, controller, unit,
                             rsp['exitcode'], rsp['stdout'], rsp['stderr']))
         return
 
