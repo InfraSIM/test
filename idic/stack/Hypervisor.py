@@ -58,8 +58,8 @@ class CHypervisor(CDevice):
         Get all vm information into a dict
         :return: a dict, e.g.
         {
-            "vm1": 3180,
-            "vm2": 3181
+            "vm1": "3180",
+            "vm2": "3181"
         }
         '''
         dict_vms = {}
