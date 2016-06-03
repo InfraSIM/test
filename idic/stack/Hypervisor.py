@@ -66,9 +66,12 @@ class CHypervisor(CDevice):
 
         rsp = self.ssh.remote_shell("vim-cmd vmsvc/getallvm")
         vms = rsp['stdout'].split("\n")
-        for vm in vms[1:-1]:
+        for vm in vms:
+            # The line define vm has datastore name in []
+            if '[' not in vm:
+                continue
             prefix = vm.split('[')[0]
-            vm_id = prefix.split(' ', 1)[0].strip()
+            vm_id = prefix.split()[0].strip()
             vm_name = prefix.split(' ', 1)[1].strip()
             dict_vms[vm_name] = vm_id
 
