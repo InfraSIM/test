@@ -53,6 +53,31 @@ class CHypervisor(CDevice):
         self.password = password
 
     @with_connect('ssh')
+    def get_all_vmid(self):
+        '''
+        Get all vm information into a dict
+        :return: a dict, e.g.
+        {
+            "vm1": "3180",
+            "vm2": "3181"
+        }
+        '''
+        dict_vms = {}
+
+        rsp = self.ssh.remote_shell("vim-cmd vmsvc/getallvm")
+        vms = rsp['stdout'].split("\n")
+        for vm in vms:
+            # The line define vm has datastore name in []
+            if '[' not in vm:
+                continue
+            prefix = vm.split('[')[0]
+            vm_id = prefix.split()[0].strip()
+            vm_name = prefix.split(' ', 1)[1].strip()
+            dict_vms[vm_name] = vm_id
+
+        return dict_vms
+    
+    @with_connect('ssh')
     def get_vmid(self, dtstore, vm_name):
         rsp = self.ssh.remote_shell("vim-cmd vmsvc/getallvm")
         vms = rsp['stdout'].split("\n")
