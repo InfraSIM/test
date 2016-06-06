@@ -99,4 +99,7 @@ class T33249_idic_KCSLanPrint(CBaseCase):
 
     def deconfig(self):
         self.log('INFO', 'Deconfig')
+        # Umount ubuntu disk image and recover node
+        self.stack.recover_disk(self.test_node)
+
         CBaseCase.deconfig(self)

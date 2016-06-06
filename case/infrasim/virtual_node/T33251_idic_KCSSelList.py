@@ -65,5 +65,8 @@ class T33251_idic_KCSSelList(CBaseCase):
 
     def deconfig(self):
         self.log('INFO', 'Deconfig')
+        # Umount ubuntu disk image and recover node
+        self.stack.recover_disk(self.test_node)
+        
         CBaseCase.deconfig(self)
 
