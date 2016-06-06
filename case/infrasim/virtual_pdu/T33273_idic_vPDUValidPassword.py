@@ -49,6 +49,8 @@ class T33273_idic_vPDUValidPassword(CBaseCase):
             obj_hyper = self.stack.hypervisors[obj_rack.get_hypervisor()]
             for obj_node in obj_rack.get_node_list():
                 for power_unit in obj_node.power:
+                    pdu_pwd = power_unit[0].get_outlet_password(power_unit[1])
+                    power_unit[0].match_outlet_password(power_unit[1], pdu_pwd)
                     if not power_unit[0].power_on(power_unit[1]):
                         self.result(FAIL, 'Node failed powering on with correct PDU '
                                           'outlet password. Node is {}, outlet is {}.'.
