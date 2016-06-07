@@ -83,7 +83,7 @@ class T36713_idic_ControlNodePower(CBaseCase):
                 # BMC is not on, power on the virtual node in first loop
                 if ret != 0:
                     self.log('WARNING', 'Node {} vBMC doesn\'t response, ret: {}, retry...'.
-                             format(obj_node.get_name()))
+                             format(obj_node.get_name(), ret))
                     time.sleep(int_gap)
                     continue
                 # System power is not on, do ipmi power on

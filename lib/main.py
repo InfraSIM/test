@@ -206,15 +206,17 @@ def run_in_command_line_mode():
     # Case list by -l, test list file
     list_file = obj_options.str_case_list
     if list_file:
-        msg = 'Include cases in list file(%s) into task file' % list_file
-        Env.log('INFO', msg)
         # parse the file and add to list_case
         for one_list in list_file.split(','):
+            msg = 'Include cases in list file(%s) into task file' % list_file
+            Env.log('INFO', msg)
             if not os.path.isfile(one_list):
                 Env.log('WARNING', 'Case list file(%s) not found' % one_list)
             else:
                 lines = open(one_list, 'r').read().splitlines()
                 for i in lines:
+                    if not i.strip():
+                        continue
                     if i.startswith('#' or '/'):
                         # commented out. ignore.
                         continue
