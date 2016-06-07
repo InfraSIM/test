@@ -209,15 +209,16 @@ def run_in_command_line_mode():
         msg = 'Include cases in list file(%s) into task file' % list_file
         Env.log('INFO', msg)
         # parse the file and add to list_case
-        if not os.path.isfile(list_file):
-            Env.log('WARNING', 'Case list file(%s) not found' % list_file)
-        else:
-            lines = open(list_file, 'r').read().splitlines()
-            for i in lines:
-                if i.startswith('#' or '/'):
-                    # commented out. ignore.
-                    continue
-                list_case.append(i.strip())
+        for one_list in list_file.split(','):
+            if not os.path.isfile(one_list):
+                Env.log('WARNING', 'Case list file(%s) not found' % one_list)
+            else:
+                lines = open(one_list, 'r').read().splitlines()
+                for i in lines:
+                    if i.startswith('#' or '/'):
+                        # commented out. ignore.
+                        continue
+                    list_case.append(i.strip())
 
     # Case list by -c, loose test cases
     if obj_options.str_cases:
@@ -403,7 +404,7 @@ def parse_options():
     group_test.add_option('-l', '--list', action='store', type='string',
                      dest='str_case_list', default='',
                      help='Name of file containing a list of test '
-                          'cases/suites')
+                          'cases/suites, file names can be separated by \',\'')
     group_test.add_option('-s', '--suite', action='store', type='string',
                      dest='test_suite', default='',
                      help='Folder path of the test suites separated by '
