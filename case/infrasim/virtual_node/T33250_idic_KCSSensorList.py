@@ -4,7 +4,7 @@ from lib.Apps import dhcp_query_ip
 import re
 
 
-class T33250_idic_KCSFruSensorList(CBaseCase):
+class T33250_idic_KCSSensorList(CBaseCase):
     '''
     [Purpose ]: Boot OS in InfraSIM host and send ipmi command.
     [Author  ]: june.zhou@emc.com
