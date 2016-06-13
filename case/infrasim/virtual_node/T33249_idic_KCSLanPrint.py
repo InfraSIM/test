@@ -26,7 +26,7 @@ class T33249_idic_KCSLanPrint(CBaseCase):
             self.test_node.get_name()))
 
         str_ret, str_rsp = self.test_node.get_bmc().ipmi.ipmitool_standard_cmd(
-            'fru print')
+            'fru print 0')
 
         fru = {}
         for item in str_rsp.split('\n'):
