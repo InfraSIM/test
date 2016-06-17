@@ -53,18 +53,25 @@ class T46141_idic_IPMISIMHistoryAccessible(CBaseCase):
                 p_help_sensor = r'\d*help\ssensor\r'#pattern for lines[count-4]
                 p_help = r'\d*help\r'#pattern for lines[count-5]
 
-                if re.search(p_sensor, lines[count-3])  \
-                        and re.search(p_help_sensor, lines[count-4])  \
-                        and re.search(p_help, lines[count-5]) :
-                    self.log('INFO', 'History from Node:{} .Rack is {}, Node is {}, BMC IP is: {}'.
-                            format(str_rsp, obj_node.get_name(),obj_node.get_name(), bmc_obj.get_ip()))
+                if len(lines)>=5:
+                    if re.search(p_sensor, lines[count-3])  \
+                            and re.search(p_help_sensor, lines[count-4])  \
+                            and re.search(p_help, lines[count-5]) :
+                        self.log('INFO', 'History from Node:{} .Rack is {}, Node is {}, BMC IP is: {}'.
+                                format(str_rsp, obj_node.get_name(),obj_node.get_name(), bmc_obj.get_ip()))
+                    else:
+                        self.result(FAIL,
+                                    'When history has less than 30 entries, '
+                                    'the last 3 entries are expected to be "help", "help sensor", "sensor".'
+                                    'See log for actual entries.'
+                                    'Rack is {}, Node is {}, BMC IP is: {}'
+                                    .format(obj_rack.get_name(),obj_node.get_name(), bmc_obj.get_ip()))
                 else:
-                    self.result(FAIL,
-                                'When history has less than 30 entries, '
-                                'the last 3 entries are expected to be "help", "help sensor", "sensor".'
-                                'See log for actual entries.'
-                                'Rack is {}, Node is {}, BMC IP is: {}'
-                                .format(obj_rack.get_name(),obj_node.get_name(), bmc_obj.get_ip()))
+                        self.result(FAIL,
+                                    'History contains less commands than expected which were run. '
+                                    'Please check IPMI_SIM accessibility.'
+                                    'Rack is {}, Node is {}, BMC IP is: {}'
+                                    .format(obj_rack.get_name(),obj_node.get_name(), bmc_obj.get_ip()))
 
                 time.sleep(1)
 
