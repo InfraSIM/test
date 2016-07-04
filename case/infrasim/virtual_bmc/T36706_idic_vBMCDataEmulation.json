@@ -4,7 +4,7 @@
         "//":"Quanta T41",
         "QuantaPlex T41S-2U":{"0xec": "uc" },
         "//": "Quanta D51",
-        "D51B-2U (dual 10G LoM)":{"0xec": "uc"},
+        "D51B-2U (dual 1G LoM)":{"0xec": "uc"},
         "//": "s2600kp",
         "S2600KP":{"0x23": "uc"},
         "//": "s2600tp",
