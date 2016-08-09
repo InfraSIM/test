@@ -483,6 +483,7 @@ class CBaseCase(CLogger):
                 self.result(FAIL, errmsg)
 
         self.log('INFO', 'Exit case')
+        self.remove_logger()
 
     def result(self, str_result, str_info = ''):
         '''
@@ -668,12 +669,14 @@ class CBaseCase(CLogger):
         # reset REST session
         try:
             self.monorail.obj_rest_agent.reset()
+            self.monorail.obj_rest_agent.set_logger(None)
         except:
             pass
         # reset SSH session
         try:
-            self.monorail.obj_ssh_agent.reset()
             self.monorail.obj_ssh_agent.disconnect()
+            self.monorail.obj_ssh_agent.reset()
+            self.monorail.obj_ssh_agent.set_logger(None)
         except:
             pass
 
@@ -682,10 +685,6 @@ class CBaseCase(CLogger):
             self.deconfig_stack()
         except:
             pass
-
-        # reset log handler
-        self.obj_logger.removeHandler(self.obj_logger.handlers[0])
-        self.obj_logger = None
 
         return True
 
@@ -967,6 +966,7 @@ class CBaseCase(CLogger):
         return
 
     def deconfig_stack(self):
+
         self.log('INFO', 'Deconfig stack ...')
 
         self.log('INFO', 'Deconfig vRackSystem REST agent ...'.format())
@@ -990,31 +990,36 @@ class CBaseCase(CLogger):
 
         # Deconfig SSH shell
         obj_ssh = obj_hypervisor.ssh
-        obj_ssh.reset()
         obj_ssh.disconnect()
+        obj_ssh.reset()
+        obj_ssh.set_logger(None)
 
     def deconfig_node(self, obj_node):
         self.log('INFO', 'Deconfig node {} ...'.format(obj_node.get_name()))
 
         # Deconfig IPMI_SIM shell
         obj_ssh_ipmi_sim = obj_node.get_bmc().ssh_ipmi_sim
-        obj_ssh_ipmi_sim.reset()
         obj_ssh_ipmi_sim.disconnect()
+        obj_ssh_ipmi_sim.reset()
+        obj_ssh_ipmi_sim.set_logger(None)
 
         # Deconfig BMC SSH shell
         obj_bmc_ssh = obj_node.get_bmc().ssh
-        obj_bmc_ssh.reset()
         obj_bmc_ssh.disconnect()
+        obj_bmc_ssh.reset()
+        obj_bmc_ssh.set_logger(None)
 
         # Deconfig BMC IOL session
         obj_bmc_iol = obj_node.get_bmc().ipmi
         obj_bmc_iol.reset()
+        obj_bmc_iol.set_logger(None)
 
     def deconfig_pdu(self, obj_pdu):
         self.log('INFO', 'Deconfig PDU {} ...'.format(obj_pdu.get_name()))
         obj_ssh = obj_pdu.ssh_vpdu
-        obj_ssh.reset()
         obj_ssh.disconnect()
+        obj_ssh.reset()
+        obj_ssh.set_logger(None)
 
     def config_graph(self):
         obj_ssh = self.monorail.obj_ssh_agent if self.monorail else None
@@ -1061,6 +1066,13 @@ class CBaseCase(CLogger):
                     obj_device.set_logger(self.obj_logger)
             except Exception:
                 self.log('WARNING', 'CStack instance is not ready, can\'t set event log handler')
+
+    def remove_logger(self):
+        for handler in self.obj_logger.handlers:
+            self.obj_logger.removeHandler(handler)
+
+        self.obj_logger = None
+
 
     def env_stack_verify(self):
         b_update = False
