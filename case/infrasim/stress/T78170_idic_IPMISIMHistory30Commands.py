@@ -58,13 +58,13 @@ class T78170_idic_IPMISIMHistory30Commands(CBaseCase):
 
                 #lines[count-1] is 'IPMI_SIM'
                 #lines[count-2] is '\r'
-                p_sensor = r'\d*\ssel\r'#pattern for lines[count-3]
+                p_sensor = r'\d*\ssel\r'#pattern for lines[count-5]
                 p_help_sensor = r'\d*\ssensor\r'#pattern for lines[count-4]
-                p_help = r'\d*\shelp\r'#pattern for lines[count-5]
+                p_help = r'\d*\shelp\r'#pattern for lines[count-3]
 
-                if re.search(p_sensor, lines[count-3])  \
+                if re.search(p_sensor, lines[count-5])  \
                         and re.search(p_help_sensor, lines[count-4])  \
-                        and re.search(p_help, lines[count-5]) :
+                        and re.search(p_help, lines[count-3]) :
                     self.log('INFO', 'History from Node:{} .Rack is {}, Node is {}, BMC IP is: {}'.
                             format(str_rsp, obj_node.get_name(),obj_node.get_name(), bmc_obj.get_ip()))
                 else:
