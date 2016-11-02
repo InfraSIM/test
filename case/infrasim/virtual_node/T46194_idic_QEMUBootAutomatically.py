@@ -13,7 +13,7 @@ class T46194_idic_QEMUBootAutomatically(CBaseCase):
 
     def config(self):
         CBaseCase.config(self)
-        self.enable_bmc_ssh()
+        self.enable_node_ssh()
 
     def test(self):
         for obj_rack in self.stack.get_rack_list():

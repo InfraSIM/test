@@ -14,7 +14,7 @@ class T46139_idic_IPMISIMSensorAccessible(CBaseCase):
 
     def config(self):
         CBaseCase.config(self)
-        self.enable_ipmi_sim()
+        self.enable_ipmi_console()
 
     def test(self):
         for obj_rack in self.stack.get_rack_list():
@@ -57,11 +57,11 @@ class T46139_idic_IPMISIMSensorAccessible(CBaseCase):
 
                 sensor_value = 1000.00
 
-                bmc_ssh = bmc_obj.ssh_ipmi_sim
-                str_rsp = bmc_ssh.send_command_wait_string(str_command='sensor'+chr(13),
-                                                           wait='info mode value',
-                                                           int_time_out=30,
-                                                           b_with_buff=False)
+                ipmi_console = obj_node.ssh_ipmi_console
+                str_rsp = ipmi_console.send_command_wait_string(str_command='sensor'+chr(13),
+                                                                wait='info mode value',
+                                                                int_time_out=30,
+                                                                b_with_buff=False)
                 if re.search("Available sensor commands", str_rsp) is None:
                     # If sensor command not available
                     self.result(FAIL, 'BMC IPMI_SIM sensor command is not accessible. Rack is {}, '
@@ -69,10 +69,10 @@ class T46139_idic_IPMISIMSensorAccessible(CBaseCase):
                                 format(obj_rack.get_name(), obj_node.get_name(), bmc_obj.get_ip()))
 
                 else:
-                    str_rsp = bmc_ssh.send_command_wait_string(str_command='sensor info'+chr(13),
-                                                               wait='degrees C',
-                                                               int_time_out=10,
-                                                               b_with_buff=False)
+                    str_rsp = ipmi_console.send_command_wait_string(str_command='sensor info'+chr(13),
+                                                                    wait='degrees C',
+                                                                    int_time_out=10,
+                                                                    b_with_buff=False)
                     self.log('INFO', 'Sensor info of node: {}'.format(str_rsp))
                     if not str_rsp:
                         self.result(FAIL,
@@ -82,32 +82,32 @@ class T46139_idic_IPMISIMSensorAccessible(CBaseCase):
                         return
 
                     # Clear previous ssh stream
-                    str_rsp = bmc_ssh.send_command_wait_string(str_command=chr(13),
-                                                               wait='IPMI_SIM>',
-                                                               int_time_out=3,
-                                                               b_with_buff=False)
+                    str_rsp = ipmi_console.send_command_wait_string(str_command=chr(13),
+                                                                    wait='IPMI_SIM>',
+                                                                    int_time_out=3,
+                                                                    b_with_buff=False)
                     # Add 1s sleep to meet lab network latency
                     time.sleep(1)
 
-                    str_rsp = bmc_ssh.send_command_wait_string(str_command='sensor value get {} {}'
-                                                               .format(sensor_id, chr(13)),
-                                                               wait='IPMI_SIM>',
-                                                               int_time_out=3,
-                                                               b_with_buff=False)
+                    str_rsp = ipmi_console.send_command_wait_string(str_command='sensor value get {} {}'
+                                                                    .format(sensor_id, chr(13)),
+                                                                    wait='IPMI_SIM>',
+                                                                    int_time_out=3,
+                                                                    b_with_buff=False)
                     self.log('INFO', 'Sensor (id:{}) value of node: {}'.format(sensor_id, str_rsp))
 
-                    bmc_ssh.send_command_wait_string(str_command='sensor value set {} {} {}'
-                                                     .format(sensor_id, sensor_value, chr(13)),
-                                                     wait='IPMI_SIM>',
-                                                     int_time_out=3,
-                                                     b_with_buff=False)
+                    ipmi_console.send_command_wait_string(str_command='sensor value set {} {} {}'
+                                                          .format(sensor_id, sensor_value, chr(13)),
+                                                          wait='IPMI_SIM>',
+                                                          int_time_out=3,
+                                                          b_with_buff=False)
                     self.log('INFO', 'Sensor (id:{}) value of node set to: {}'.format(sensor_id, sensor_value))
 
-                    str_rsp = bmc_ssh.send_command_wait_string(str_command='sensor value get {} {}'
-                                                               .format(sensor_id, chr(13)),
-                                                               wait='IPMI_SIM>',
-                                                               int_time_out=3,
-                                                               b_with_buff=False)
+                    str_rsp = ipmi_console.send_command_wait_string(str_command='sensor value get {} {}'
+                                                                    .format(sensor_id, chr(13)),
+                                                                    wait='IPMI_SIM>',
+                                                                    int_time_out=3,
+                                                                    b_with_buff=False)
 
                     if re.search(str(sensor_value_expected), str_rsp) is not None:
                         self.log('INFO', 'Sensor (id:{}) value of node set to: {} succeed!'

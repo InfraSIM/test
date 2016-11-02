@@ -1,29 +1,10 @@
 {
-    "vRackSystem": {
-        "protocol": "http",
-        "ip": "192.168.1.1",
-        "port": 8888,
-        "username": "admin",
-        "password": "admin",
-        "root": "/api/v1"
-    },
-    "available_HyperVisor": [
-        {
-            "name": "hyper1",
-            "type": "ESXi",
-            "ip": "192.168.1.2",
-            "username": "username",
-            "password": "password"
-        }
-    ],
     "vRacks": [
         {
             "name": "vRack1",
-            "hypervisor": "hyper1",
             "vPDU": [
                 {
                     "name": "vpdu_1",
-                    "datastore": "Datastore01",
                     "community": "foo",
                     "ip": "172.31.128.1",
                     "outlet": {
@@ -38,39 +19,32 @@
             "vNode": [
                 {
                     "name": "vnode_a_20160126114700",
-                    "datastore": "Datastore01",
                     "power": [
                         {"vPDU": "vpdu_1", "outlet": "1.1"}
                     ],
-                    "network": [],
+                    "admin": {
+                        "ip": "192.168.134.114",
+                        "username": "infrasim",
+                        "password": "infrasim"
+                    },
                     "bmc": {
-                        "ip": "172.31.128.2",
+                        "ip": "172.31.128.14",
                         "username": "admin",
                         "password": "admin"
                     }
                 },
                 {
-                    "name": "vnode_b_20160126114700",
-                    "datastore": "Datastore01",
+                    "name": "vnode_a_20160126114702",
                     "power": [
                         {"vPDU": "vpdu_1", "outlet": "1.2"}
                     ],
-                    "network": [],
+                    "admin": {
+                        "ip": "192.168.134.116",
+                        "username": "infrasim",
+                        "password": "infrasim"
+                    },
                     "bmc": {
-                        "ip": "172.31.128.3",
-                        "username": "admin",
-                        "password": "admin"
-                    }
-                },
-                {
-                    "name": "vnode_c_20160126114700",
-                    "datastore": "Datastore01",
-                    "power": [
-                        {"vPDU": "vpdu_1", "outlet": "1.3"}
-                    ],
-                    "network": [],
-                    "bmc": {
-                        "ip": "172.31.128.4",
+                        "ip": "172.31.128.16",
                         "username": "admin",
                         "password": "admin"
                     }

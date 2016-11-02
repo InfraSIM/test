@@ -726,19 +726,6 @@ class CBaseCase(CLogger):
         return True
 
     def config_stack(self):
-        # Set vRackSystem logger
-        self.log('INFO', 'Build vRackSystem ...')
-        str_log_file = os.path.join(self.str_work_directory, 'vRackSystem_{}_{}.txt'.
-                                    format(self.str_case_name.split('_')[0],
-                                           time.strftime(Env.TIME_FORMAT_FILE)))
-        self.stack.rest.set_session_log(str_log_file)
-        self.stack.rest.set_logger(self.obj_logger)
-
-        # Set hypervisor logger
-        self.enable_hypervisor_ssh()
-
-        # Verify stack configuration
-        self.env_stack_verify()
 
         # Config stack ABS according to dict
         self.log('INFO', 'Build stack ...')
@@ -835,30 +822,29 @@ class CBaseCase(CLogger):
 
         return
 
-    def enable_ipmi_sim(self, list_node=None):
+    def enable_ipmi_console(self, list_node=None):
         '''
         Prepare SSH link to all node in list
         If list is None (not set by any value), it will try to apply it for every node
         '''
         if list_node is None:
             list_node = self.stack.walk_node()
-        gevent.joinall([gevent.spawn(self._enable_ipmi_sim, obj_node)
+        gevent.joinall([gevent.spawn(self._enable_ipmi_console, obj_node)
                         for obj_node in list_node])
 
-    def _enable_ipmi_sim(self, obj_node):
+    def _enable_ipmi_console(self, obj_node):
         if obj_node.str_sub_type != 'vNode':
             self.log('WARNING', '{} is no virtual node, skip'.format(obj_node.get_name()))
             return
 
-        self.log('INFO', 'Build IPMI_SIM on node {} ...'.format(obj_node.get_name()))
+        self.log('INFO', 'Build ipmi-console access on node {} ...'.format(obj_node.get_name()))
 
-        # SSH to node BMC IPMI_SIM shell
-        str_bmc_ip = obj_node.get_bmc().get_ip()
-        str_ipmi_sim_ssh_log = os.path.join(self.str_work_directory, 'IPMI_SIM_{}_{}_{}.txt'.
-                                   format(str_bmc_ip,
+        # SSH to node ipmi-console shell
+        str_ipmi_sim_ssh_log = os.path.join(self.str_work_directory, 'IPMI_CONSOLE_{}_{}_{}.txt'.
+                                   format(obj_node.get_ip(),
                                           self.str_case_name.split('_')[0],
                                           time.strftime(Env.TIME_FORMAT_FILE)))
-        obj_ssh = obj_node.get_bmc().ssh_ipmi_sim
+        obj_ssh = obj_node.ssh_ipmi_console
         obj_ssh.set_logger(self.obj_logger)
         obj_ssh.set_raw_log_file(str_ipmi_sim_ssh_log)
         obj_ssh.set_log(1, True)
@@ -868,7 +854,7 @@ class CBaseCase(CLogger):
 
         return
 
-    def enable_bmc_ssh(self, list_node=None):
+    def enable_node_ssh(self, list_node=None):
         '''
         Prepare SSH link to all node's BMC's port 22 in list
         If list is None (not set by any value), it will try to apply it for every node
@@ -890,16 +876,16 @@ class CBaseCase(CLogger):
 
     def _enable_ssh(self, obj_device):
         if obj_device.str_sub_type == 'vNode':
-            self.log('INFO', 'Build BMC SSH on node {} ...'.format(obj_device.get_name()))
+            self.log('INFO', 'Build SSH on node {} ...'.format(obj_device.get_name()))
 
-            # SSH to node BMC on port 22
-            str_ip = obj_device.get_bmc().get_ip()
-            str_ssh_log = os.path.join(self.str_work_directory, 'BMC_SSH_{}_{}_{}.txt'.
+            # SSH to node on port 22
+            str_ip = obj_device.get_ip()
+            str_ssh_log = os.path.join(self.str_work_directory, 'SSH_{}_{}_{}.txt'.
                                        format(str_ip,
                                               self.str_case_name.split('_')[0],
                                               time.strftime(Env.TIME_FORMAT_FILE)))
 
-            obj_ssh = obj_device.get_bmc().ssh
+            obj_ssh = obj_device.ssh
             str_prompt = '~$'
         elif obj_device.str_sub_type == 'hypervisor':
             self.log('INFO', 'Build hypervisor SSH on {} ...'.format(obj_device.get_ip()))
@@ -998,10 +984,10 @@ class CBaseCase(CLogger):
         self.log('INFO', 'Deconfig node {} ...'.format(obj_node.get_name()))
 
         # Deconfig IPMI_SIM shell
-        obj_ssh_ipmi_sim = obj_node.get_bmc().ssh_ipmi_sim
-        obj_ssh_ipmi_sim.disconnect()
-        obj_ssh_ipmi_sim.reset()
-        obj_ssh_ipmi_sim.set_logger(None)
+        obj_ssh_ipmi_console = obj_node.ssh_ipmi_console
+        obj_ssh_ipmi_console.disconnect()
+        obj_ssh_ipmi_console.reset()
+        obj_ssh_ipmi_console.set_logger(None)
 
         # Deconfig BMC SSH shell
         obj_bmc_ssh = obj_node.get_bmc().ssh
