@@ -15,6 +15,8 @@ class T33248_idic_KCSFruPrint(CBaseCase):
         CBaseCase.config(self)
 
         # Config all node to go to host.
+        self.result(BLOCK, "Going to rewrite KCS test")
+        return
         self.enable_hypervisor_ssh()
     
     def test(self):
@@ -56,6 +58,7 @@ class T33248_idic_KCSFruPrint(CBaseCase):
         qemu_conn.disconnect()
     
     def deconfig(self):
+        return
         # Umount ubuntu disk image and recover node
         self.stack.recover_disk(self.test_node)
 

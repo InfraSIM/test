@@ -6,6 +6,7 @@ Copyright @ 2015 EMC Corporation All Rights Reserved
 from case.CBaseCase import *
 import re
 
+
 class T46194_idic_QEMUBootAutomatically(CBaseCase):
 
     def __init__(self):
@@ -21,16 +22,15 @@ class T46194_idic_QEMUBootAutomatically(CBaseCase):
                 self.log('INFO', 'Check node {} of rack {} ...'.
                          format(obj_node.get_name(), obj_rack.get_name()))
 
-                obj_bmc = obj_node.get_bmc()
-                bmc_ssh = obj_bmc.ssh
-                str_rsp = bmc_ssh.send_command_wait_string(str_command='ps | grep "qemu"'+chr(13),
-                                                           wait='$',
-                                                           int_time_out=10,
-                                                           b_with_buff=False)
+                node_ssh = obj_node.ssh
+                str_rsp = node_ssh.send_command_wait_string(str_command='ps ax | grep "qemu-system-x86_64"'+chr(13),
+                                                            wait='$',
+                                                            int_time_out=10,
+                                                            b_with_buff=False)
 
                 self.log('INFO', 'rsp: \n{}'.format(str_rsp))
 
-                if re.search("qemu-system-x86_64", str_rsp) != None:
+                if re.search("qemu-system-x86_64", str_rsp) is not None:
                     self.log('INFO', 'Process of QEMU is boot automatically.')
                 else:
                     self.result(FAIL, 'Failed to automatically boot process of QEMU.')
