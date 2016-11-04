@@ -15,7 +15,7 @@ class T33248_idic_KCSFruPrint(CBaseCase):
         CBaseCase.config(self)
 
         # Config all node to go to host.
-        self.result(BLOCK, "Going to rewrite KCS test")
+        self.result(SKIP, "Deprecated, refer to case 97939")
         return
         self.enable_hypervisor_ssh()
     

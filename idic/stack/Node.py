@@ -8,11 +8,15 @@ Created on Dec 28, 2015
 *********************************************************
 '''
 import time
-
+import re
+import json
+import yaml
+import os
 from lib.Device import CDevice
 from idic.stack.BMC import CBMC
 from lib.SSH import CSSH
 from lib.Apps import with_connect
+from lib.Apps import update_option
 
 
 class CNode(CDevice):
@@ -173,3 +177,74 @@ class CNode(CDevice):
         self.ssh.send_command('~.')
 
         self.b_sol = False
+
+    @with_connect('ssh')
+    def send_file(self, src, dst):
+        '''
+        Put file from src to dst, return canonicalized path of destination
+        '''
+        self.log("INFO", "Send file {} to {} on node {}...".format(src, dst, self.get_name()))
+        with self.ssh.h_ssh.open_sftp() as sftp:
+            sftp.put(src, dst)
+            return str(sftp.normalize(dst))
+
+    @with_connect('ssh')
+    def get_instance_name(self):
+        '''
+        Get run time node names from admin network.
+        You may get multiple instances in the same environment, but this function
+        has not handled this condition yet.
+        It now focus on one infrasim instances in one admin network.
+        :return:
+        '''
+        self.log("INFO", "Get runtime instance name from node {}...".format(self.get_ip()))
+        p_name = re.compile(r"] (.*)-node is running")
+
+        rsp = self.ssh.send_command_wait_string(str_command='echo {} | sudo -S infrasim-main status {}'.
+                                                format(self.username, chr(13)),
+                                                wait='~$')
+
+        list_name = list(set(p_name.findall(rsp)))
+        if len(list_name) == 1:
+            return list_name[0]
+        else:
+            raise Exception("Multiple infrasim instances {} are detected on {}. "
+                            "This is not supported yet.".
+                            format(list_name, self.ip))
+
+    @with_connect('ssh')
+    def update_instance_config(self, str_instance_name, payload, *key):
+        '''
+        Update configuration file, assign payload to target key.
+        :param str_instance_name:
+        :param dict_payload:
+        :return:
+        '''
+        self.log("INFO", "Update config for instance {} on node {}...".format(str_instance_name, self.get_ip()))
+        self.log("INFO", "{}: \n{}".format(" > ".join(key), json.dumps(payload, indent=4)))
+        remote_path = os.path.join(".infrasim", str_instance_name, "data", "infrasim.yml")
+        with self.ssh.h_ssh.open_sftp() as sftp:
+            conf = None
+            with sftp.open(remote_path, 'r') as remote_file:
+                conf = yaml.load(remote_file)
+                update_option(conf, payload, *key)
+            with sftp.open('tmp.yml', 'w') as remote_file:
+                yaml.dump(conf, remote_file, default_flow_style=False)
+
+        self.ssh.send_command_wait_string(str_command="echo {} | sudo -S mv tmp.yml {}".
+                                          format(self.password, remote_path)+chr(13),
+                                          wait="~$")
+
+    @with_connect('ssh')
+    def get_instance_config(self, str_instance_name):
+        '''
+        Get configuration
+        :param str_instance_name:
+        :param dict_payload:
+        :return:
+        '''
+        self.log("INFO", "Get config for instance {} on node {}...".format(str_instance_name, self.get_ip()))
+        remote_path = os.path.join(".infrasim", str_instance_name, "data", "infrasim.yml")
+        with self.ssh.h_ssh.open_sftp() as sftp:
+            with sftp.open(remote_path, 'r') as remote_file:
+                return yaml.load(remote_file)

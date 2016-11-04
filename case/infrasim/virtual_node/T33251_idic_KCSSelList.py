@@ -12,7 +12,7 @@ class T33251_idic_KCSSelList(CBaseCase):
 
     def config(self):
         CBaseCase.config(self)
-        self.result(BLOCK, "Going to rewrite KCS test")
+        self.result(SKIP, "Deprecated, refer to case 97939")
         return
 
     def test(self):

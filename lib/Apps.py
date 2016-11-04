@@ -7,6 +7,7 @@ import types
 import re
 import math
 import json
+import hashlib
 from functools import wraps
 from lib.SSH import CSSH
 
@@ -608,3 +609,69 @@ def dhcp_query_ip(server, username, password, mac):
         if is_valid_ip(p.group(1)):
             conn.disconnect()
             return p.group(1)
+
+
+def md5(fname):
+    '''
+    Caculate md5 sum for a file
+    :param fname: file path
+    :return: md5 sum in string
+    '''
+    hash_md5 = hashlib.md5()
+    with open(fname, "rb") as f:
+        for chunk in iter(lambda: f.read(4096), b""):
+            hash_md5.update(chunk)
+    return hash_md5.hexdigest()
+
+
+def has_option(config, *args):
+    """
+    Check if config has these option chains
+    :param config: a python dict
+    :param args: a list of option chains, e.g.
+    if config is:
+    {
+        "a": {"b": 1}
+    }
+    has_option(config, "a", "b") returns True
+    has_option(config, "b") returns False
+    has_option(config, "a", "c") returns False
+    """
+    if len(args) == 0:
+        raise Exception(has_option.__doc__)
+    section = config
+    for option in args:
+        try:
+            iter(section)
+        except TypeError:
+            return False
+        if option in section:
+            section = section[option]
+        else:
+            return False
+    return True
+
+
+def update_option(config, payload, *args):
+    """
+    Update payload to config's target option, the option can be a key chains
+    :param config: a python dict
+    :param payload: target value to update
+    :param args: a list of option chains, e.g.
+    if config is:
+    {
+        "a": {"b": 1}
+    }
+    update_option(config, 2, "a", "b") updates config to {"a":{"b":2}}
+    update_option(config, 2, "b") raises exception since no key "b" for this dict
+    update_option(config, 2, "a") updates config to {"a":2}
+    """
+    if len(args) == 0:
+        raise Exception(update_option.__doc__)
+    if not has_option(config, *args):
+        raise KeyError("Target object has no key chain like: {}".format(' > '.join(args)))
+
+    target = config
+    for i in range(len(args)-1):
+        target = target[args[i]]
+    target[args[-1]] = payload
