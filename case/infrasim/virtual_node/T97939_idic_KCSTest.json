@@ -6,7 +6,10 @@
         "S2600TP":"3",
         "S2600WTT":"0",
         "PowerEdge C6320":"1",
-        "":"1"
+        "":"1",
+        "DHCP_SERVER":"192.168.128.4",
+        "DHCP_USERNAME":"root",
+        "DHCP_PASSWORD":"cisolution"
     }
 ]
 

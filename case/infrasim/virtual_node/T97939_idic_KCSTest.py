@@ -1,5 +1,7 @@
 from case.CBaseCase import *
 from lib.Apps import md5
+from lib.Apps import dhcp_query_ip
+from lib.SSH import CSSH
 import urllib
 import re
 import gevent
@@ -32,14 +34,16 @@ class T97939_idic_KCSTest(CBaseCase):
             self.log("INFO", "kcs.img is correct for test")
 
     def test(self):
-        gevent.joinall([gevent.spawn(self.test_ipmi_ssh_on_kcs, obj_node)
+        gevent.joinall([gevent.spawn(self.boot_to_disk, obj_node)
+                        for obj_node in self.stack.walk_node()])
+        gevent.joinall([gevent.spawn(self.kcs_test, obj_node)
                         for obj_node in self.stack.walk_node()])
 
     def deconfig(self):
         # To do: Case specific deconfig
         CBaseCase.deconfig(self)
 
-    def test_ipmi_ssh_on_kcs(self, node):
+    def boot_to_disk(self, node):
         dst_path = node.send_file("image/kcs.img", "kcs.img")
         str_node_name = node.get_instance_name()
         payload = [
@@ -68,6 +72,8 @@ class T97939_idic_KCSTest(CBaseCase):
                         format(str_node_name, node.get_ip()))
             return
 
+    def kcs_test(self, node):
+        str_node_name = node.get_instance_name()
         qemu_config = node.get_instance_config(str_node_name)
         qemu_first_mac = qemu_config["compute"]["networks"][0]["mac"].lower()
         # Get qemu IP
@@ -76,9 +82,15 @@ class T97939_idic_KCSTest(CBaseCase):
                                                 wait="~$")
         qemu_first_ip = rsp.splitlines()[1]
         if not is_valid_ip(qemu_first_ip):
-            self.result(BLOCK, "Fail to get virtual compute IP address on {} {}".
-                        format(node.get_name(), node.get_ip()))
-            return
+            # If fail to get IP via arp, try to query via dhcp lease
+            try:
+                qemu_first_ip = self.get_guest_ip(qemu_first_mac)
+            except:
+                self.result(BLOCK, "Fail to get virtual compute IP address on {} {}".
+                            format(node.get_name(), node.get_ip()))
+                return
+            else:
+                self.log("INFO", "Guest IP is {} on node {}".format(qemu_first_ip, node.get_name()))
         # SSH to guest
         node.ssh.send_command_wait_string(str_command="ssh root@{}".format(qemu_first_ip)+chr(13),
                                           wait=["(yes/no)", "password"])
@@ -171,3 +183,35 @@ class T97939_idic_KCSTest(CBaseCase):
             self.result(FAIL, 'IPMI command via kcs on node {} fail: ipmitool sel list'.
                         format(node.get_name()))
 
+    def get_guest_ip(self, str_mac):
+        DHCP_SERVER = self.data["DHCP_SERVER"]
+        DHCP_USERNAME = self.data["DHCP_USERNAME"]
+        DHCP_PASSWORD = self.data["DHCP_PASSWORD"]
+
+        self.log('INFO', 'Query IP for MAC {} from DHCP server'.format(str_mac))
+
+        time_start = time.time()
+        guest_ip = ''
+        while time.time() - time_start < 300:
+            try:
+                guest_ip = dhcp_query_ip(server=DHCP_SERVER,
+                                         username=DHCP_USERNAME,
+                                         password=DHCP_PASSWORD,
+                                         mac=str_mac)
+                rsp = os.system('ping -c 1 {}'.format(guest_ip))
+                if rsp != 0:
+                    self.log('INFO', 'Find an IP {} lease for MAC {}, but this IP is not online'.
+                             format(guest_ip, str_mac))
+                    time.sleep(30)
+                    continue
+                else:
+                    self.log('INFO', 'Find an IP {} lease for MAC {}, this IP works'.
+                             format(guest_ip, str_mac))
+                    break
+            except:
+                self.log('WARNING', 'Fail to query IP for MAC {}'.format(str_mac))
+
+        if not guest_ip:
+            raise Exception('Fail to get IP for MAC {} in 300s'.format(str_mac))
+        else:
+            return guest_ip
