@@ -18,32 +18,35 @@ class T78170_idic_IPMISIMHistory30Commands(CBaseCase):
     def test(self):
         for obj_rack in self.stack.get_rack_list():
             for obj_node in obj_rack.get_node_list():
-                self.log('INFO', 'To try IPMI SIM history when more than 30 commands run for each node of rack...')
+                self.log('INFO', 'To try ipmi-console history when more '
+                                 'than 30 commands run for node {}...'.
+                         format(obj_node.get_name()))
 
                 ipmi_console = obj_node.ssh_ipmi_console
 
                 count = 0
                 while count < 40:
+                    self.log('INFO', 'Stress command {}/40'.format(count))
                     ipmi_console.send_command_wait_string(str_command='sensor info' + chr(13),
-                                                          wait='IPMI_SIM',
-                                                          int_time_out=3,
+                                                          wait='IPMI_SIM>',
+                                                          int_time_out=10,
                                                           b_with_buff=False)
                     count += 1
 
                 ipmi_console.send_command_wait_string(str_command='sel' + chr(13),
-                                                      wait='IPMI_SIM',
+                                                      wait='IPMI_SIM>',
                                                       int_time_out=3,
                                                       b_with_buff=False)
                 ipmi_console.send_command_wait_string(str_command='sensor' + chr(13),
-                                                      wait='IPMI_SIM',
+                                                      wait='IPMI_SIM>',
                                                       int_time_out=3,
                                                       b_with_buff=False)
                 ipmi_console.send_command_wait_string(str_command='help' + chr(13),
-                                                      wait='IPMI_SIM',
+                                                      wait='IPMI_SIM>',
                                                       int_time_out=3,
                                                       b_with_buff=False)
                 str_rsp = ipmi_console.send_command_wait_string(str_command='history' + chr(13),
-                                                                wait='IPMI_SIM',
+                                                                wait='IPMI_SIM>',
                                                                 int_time_out=3,
                                                                 b_with_buff=False)
 
