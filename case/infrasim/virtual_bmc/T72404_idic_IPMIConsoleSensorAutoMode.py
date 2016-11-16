@@ -56,8 +56,8 @@ class T72404_idic_IPMIConsoleSensorAutoMode(CBaseCase):
         rsp = ipmi_console.send_command_wait_string(str_command="sensor mode set {} auto".
                                                     format(test_sensor)+chr(13),
                                                     wait="IPMI_SIM>")
-        p = re.compile(r"Sensor [\w\-_] changed to auto")
-        m = p.match(rsp)
+        p = re.compile(r"Sensor [\w\-_ ]+ changed to auto", re.MULTILINE)
+        m = p.search(rsp)
         if m:
             self.log('INFO', 'Node {} sensor {} is set to auto mode via ipmi-console'.
                      format(obj_node.get_name(), test_sensor))
@@ -70,8 +70,8 @@ class T72404_idic_IPMIConsoleSensorAutoMode(CBaseCase):
         rsp = ipmi_console.send_command_wait_string(str_command="sensor mode set {} user".
                                                     format(test_sensor)+chr(13),
                                                     wait="IPMI_SIM>")
-        p = re.compile(r"Sensor [\w\-_] changed to user")
-        m = p.match(rsp)
+        p = re.compile(r"Sensor [\w\-_ ]+ changed to user", re.MULTILINE)
+        m = p.search(rsp)
         if m:
             self.log('INFO', 'Node {} sensor {} is set back to user mode via ipmi-console'.
                      format(obj_node.get_name(), test_sensor))

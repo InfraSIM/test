@@ -6,6 +6,8 @@
         "S2600TP":"0x30",
         "S2600WTT":"0x20",
         "PowerEdge C6320":"0x80",
+        "PowerEdge R730": "0x30",
+        "R730 Base":"0x30",
         "":"0x30"
     }
 ]
