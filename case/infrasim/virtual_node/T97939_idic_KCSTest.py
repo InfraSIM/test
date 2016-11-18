@@ -25,11 +25,11 @@ class T97939_idic_KCSTest(CBaseCase):
         MD5_KCS_IMG = "cfdf7d855d2f69c67c6e16cc9b53f0da"
         if not os.path.exists("image/kcs.img"):
             self.log('INFO', "No kcs.img for test, download now...")
-            urllib.urlretrieve("https://github.com/InfraSIM/test/raw/master/image/kcs.img", "kcs.img")
-        elif md5("kcs.img") != MD5_KCS_IMG:
+            urllib.urlretrieve("https://github.com/InfraSIM/test/raw/master/image/kcs.img", "image/kcs.img")
+        elif md5("image/kcs.img") != MD5_KCS_IMG:
             self.log('WARNING', "kcs.img fail on md5 sum, delete and download now...")
-            os.remove("kcs.img")
-            urllib.urlretrieve("https://github.com/InfraSIM/test/raw/master/image/kcs.img", "kcs.img")
+            os.remove("image/kcs.img")
+            urllib.urlretrieve("https://github.com/InfraSIM/test/raw/master/image/kcs.img", "image/kcs.img")
         else:
             self.log("INFO", "kcs.img is correct for test")
 
