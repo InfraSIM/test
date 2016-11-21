@@ -6,6 +6,7 @@ Copyright @ 2015 EMC Corporation All Rights Reserved
 from case.CBaseCase import *
 import re
 
+
 class T46140_idic_IPMISIMSelAccessible(CBaseCase):
 
     def __init__(self):
@@ -13,7 +14,7 @@ class T46140_idic_IPMISIMSelAccessible(CBaseCase):
 
     def config(self):
         CBaseCase.config(self)
-        self.enable_ipmi_sim()
+        self.enable_ipmi_console()
 
     def test(self):
         for obj_rack in self.stack.get_rack_list():
@@ -53,12 +54,28 @@ class T46140_idic_IPMISIMSelAccessible(CBaseCase):
                 else:
                     event_id = 6
 
-                    bmc_ssh = obj_bmc.ssh_ipmi_sim
+                    ipmi_console = obj_node.ssh_ipmi_console
 
-                    bmc_ssh.send_command_wait_string(str_command = 'sel get {} {}'.format(sensor_id, chr(13)), wait = 'IPMI_SIM',int_time_out =3, b_with_buff = False)
-                    bmc_ssh.send_command_wait_string(str_command = 'sel set {} {} assert'.format(sensor_id, event_id, chr(13)), wait = 'IPMI_SIM',int_time_out =3, b_with_buff = False)
-                    bmc_ssh.send_command_wait_string(str_command = 'sel set {} {} deassert'.format(sensor_id, event_id, chr(13)), wait = 'IPMI_SIM',int_time_out =3, b_with_buff = False)
-                    bmc_ssh.send_command_wait_string(str_command = 'sel get {} {}'.format(sensor_id, chr(13)), wait = 'IPMI_SIM',int_time_out =3, b_with_buff = False)
+                    ipmi_console.send_command_wait_string(str_command = 'sel get {} {}'.
+                                                          format(sensor_id, chr(13)),
+                                                          wait='IPMI_SIM',
+                                                          int_time_out =3,
+                                                          b_with_buff = False)
+                    ipmi_console.send_command_wait_string(str_command = 'sel set {} {} assert'.
+                                                          format(sensor_id, event_id, chr(13)),
+                                                          wait='IPMI_SIM',
+                                                          int_time_out=3,
+                                                          b_with_buff=False)
+                    ipmi_console.send_command_wait_string(str_command='sel set {} {} deassert'.
+                                                          format(sensor_id, event_id, chr(13)),
+                                                          wait='IPMI_SIM',
+                                                          int_time_out=3,
+                                                          b_with_buff=False)
+                    ipmi_console.send_command_wait_string(str_command='sel get {} {}'.
+                                                          format(sensor_id, chr(13)),
+                                                          wait='IPMI_SIM',
+                                                          int_time_out=3,
+                                                          b_with_buff = False)
 
                     # Get sel by using ipmitool
                     ret, rsp = obj_node.get_bmc().ipmi.ipmitool_standard_cmd('sel list')
@@ -67,18 +84,22 @@ class T46140_idic_IPMISIMSelAccessible(CBaseCase):
 
                     if ret != 0:
                         # Failed to get sel by using ipmitool
-                        self.result(FAIL, 'BMC IPMI_SIM sensor command of a node not work. Rack is {}, Node is {}, BMC ip is {}. '
-                                    'ipmitool return: {}, expect: 0, rsp: \n{}'.
+                        self.result(FAIL, 'BMC IPMI_SIM sensor command of a node not work. '
+                                          'Rack is {}, Node is {}, BMC ip is {}. '
+                                          'ipmitool return: {}, expect: 0, rsp: \n{}'.
                                     format(obj_rack.get_name(), obj_node.get_name(), obj_bmc.get_ip(), ret, rsp))
 
                     else:
                         is_match = re.search("Pre-Init", rsp)
 
-                        if is_match != None:
+                        if is_match is not None:
                             self.log('INFO', 'Get sel from vBMC: {}'.format(rsp))
                         else:
                             # Nothing gotten from vBMC, failed to add sel
-                            self.result(FAIL, 'Nothing from vBMC. Node is {}, BMC ip is: {}'.format(obj_node.get_name(), obj_bmc.get_ip()))
+                            self.result(FAIL, 'Nothing from vBMC. Node is {}, ipmi-console: {}'.
+                                        format(obj_node.get_name(),
+                                               obj_node.get_ip(),
+                                               obj_node.get_port_ipmi_console()))
 
                 time.sleep(1)
 

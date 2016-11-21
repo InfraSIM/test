@@ -16,24 +16,24 @@ class T33284_idic_SOLConnect(CBaseCase):
     def config(self):
         CBaseCase.config(self)
         # To do: Case specific config
-        self.enable_bmc_ssh()
+        self.enable_node_ssh()
 
     def test(self):
 
         for obj_node in self.stack.walk_node():
-            obj_bmc = obj_node.get_bmc()
+
             self.log('INFO', 'Activate SOL on node {} ...'.format(obj_node.get_name()))
-            obj_bmc.sol_activate(log_dir=self.str_work_directory)
+            obj_node.sol_activate(log_dir=self.str_work_directory)
 
             self.log('INFO', 'Power cycle node {} then check SOL ...'.format(obj_node.get_name()))
-            obj_bmc.ipmi.ipmitool_standard_cmd('chassis power cycle')
+            obj_node.get_bmc().ipmi.ipmitool_standard_cmd('chassis power cycle')
             
             self.log('INFO', 'Verify if SOL on node {} is alive in 60s ...'.format(obj_node.get_name()))
-            if obj_bmc.sol_is_alive():
+            if obj_node.sol_is_alive():
                 self.log('INFO', 'Node {} SOL to virtual host is alive'.format(obj_node.get_name()))
             else:
                 self.result(FAIL, 'Node {} SOL to virtual host is not alive'.format(obj_node.get_name()))
-            obj_bmc.sol_deactivate()
+            obj_node.sol_deactivate()
     
     def deconfig(self):
         # To do: Case specific deconfig

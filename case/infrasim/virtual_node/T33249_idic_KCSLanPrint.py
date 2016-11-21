@@ -15,6 +15,8 @@ class T33249_idic_KCSLanPrint(CBaseCase):
         CBaseCase.config(self)
 
         # Config all node to go to host.
+        self.result(SKIP, "Deprecated, refer to case 97939")
+        return
         self.enable_hypervisor_ssh()
 
     def test(self):
@@ -98,8 +100,8 @@ class T33249_idic_KCSLanPrint(CBaseCase):
                                 rsp))
 
     def deconfig(self):
-        self.log('INFO', 'Deconfig')
         # Umount ubuntu disk image and recover node
+        return
         self.stack.recover_disk(self.test_node)
 
         CBaseCase.deconfig(self)

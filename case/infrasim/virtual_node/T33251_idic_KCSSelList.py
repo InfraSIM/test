@@ -12,6 +12,8 @@ class T33251_idic_KCSSelList(CBaseCase):
 
     def config(self):
         CBaseCase.config(self)
+        self.result(SKIP, "Deprecated, refer to case 97939")
+        return
 
     def test(self):
         # Because disk vmdk file will be locked by hypervisor, this
@@ -64,7 +66,7 @@ class T33251_idic_KCSSelList(CBaseCase):
         qemu_conn.disconnect()
 
     def deconfig(self):
-        self.log('INFO', 'Deconfig')
+        return
         # Umount ubuntu disk image and recover node
         self.stack.recover_disk(self.test_node)
         

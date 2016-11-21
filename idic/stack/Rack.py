@@ -12,6 +12,7 @@ from idic.stack.PDU import CPDU
 from idic.stack.Node import CNode
 from idic.stack.Switch import CSwitch
 
+
 class CRack(CDevice):
     def __init__(self, dict_rack):
 
@@ -20,7 +21,6 @@ class CRack(CDevice):
         self.dict_config = dict_rack
 
         self.name = self.dict_config.get('name', '')
-        self.hypervisor = self.dict_config.get('hypervisor', '')
         self.nodes = {}
         self.pdus = {}
         self.switchs = {}
@@ -56,9 +56,6 @@ class CRack(CDevice):
 
     def get_name(self):
         return self.name
-
-    def get_hypervisor(self):
-        return self.hypervisor
 
     def add_node(self, obj_node):
         self.nodes[obj_node.get_name()] = obj_node

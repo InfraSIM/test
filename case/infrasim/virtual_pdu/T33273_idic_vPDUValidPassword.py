@@ -17,6 +17,8 @@ class T33273_idic_vPDUValidPassword(CBaseCase):
     def config(self):
         CBaseCase.config(self)
         # To do: Case specific config
+        self.result(BLOCK, 'No PDU for infrasim-compute at all')
+        return
         try:
             self.stack.walk_pdu().next()
         except StopIteration:

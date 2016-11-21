@@ -14,7 +14,7 @@ class T36706_idic_vBMCDataEmulation(CBaseCase):
 
     def config(self):
         CBaseCase.config(self)
-        self.enable_ipmi_sim()
+        self.enable_ipmi_console()
 
     def test(self):
         for obj_rack in self.stack.get_rack_list():
@@ -54,13 +54,15 @@ class T36706_idic_vBMCDataEmulation(CBaseCase):
                                 .format(e, e, self.__class__.__name__))
 
                 else:
-                    expected_sel =  "#"+sensor_id +" | Upper Critical going high | Asserted"
+                    expected_sel = "#" + sensor_id + " | Upper Critical going high | Asserted"
 
                     # Inject sensor fault and validate sel list if sel event get triggered.
-                    bmc_ssh = obj_bmc.ssh_ipmi_sim
-                    bmc_ssh.send_command_wait_string(str_command = 'sensor mode set {} fault {} {}'
-                                                     .format(sensor_id,sensor_status,chr(13)), wait = 'IPMI_SIM',
-                                                     int_time_out = 30, b_with_buff = False)
+                    ipmi_console = obj_node.ssh_ipmi_console
+                    ipmi_console.send_command_wait_string(str_command='sensor mode set {} fault {} {}'
+                                                          .format(sensor_id, sensor_status, chr(13)),
+                                                          wait='IPMI_SIM',
+                                                          int_time_out=30,
+                                                          b_with_buff=False)
 
                     str_ret, str_rsp = obj_node.get_bmc().ipmi.ipmitool_standard_cmd('sel list')
                     if not re.search(str(expected_sel), str_rsp):

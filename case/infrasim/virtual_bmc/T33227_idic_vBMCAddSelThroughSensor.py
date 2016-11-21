@@ -13,14 +13,13 @@ class T33227_idic_vBMCAddSelThroughSensor(CBaseCase):
 
     def config(self):
         CBaseCase.config(self)
-        self.enable_ipmi_sim()
+        self.enable_ipmi_console()
 
     def test(self):
         for obj_rack in self.stack.get_rack_list():
             for obj_node in obj_rack.get_node_list():
                 self.log('INFO', 'Add sel into node {} of rack {} through sensor ...'.
                          format(obj_node.get_name(), obj_rack.get_name()))
-                obj_bmc = obj_node.get_bmc()
 
                 # Get product name from FRU data.
                 ret, rsp = obj_node.get_bmc().ipmi.ipmitool_standard_cmd('fru print 0')
@@ -55,8 +54,12 @@ class T33227_idic_vBMCAddSelThroughSensor(CBaseCase):
                     sensor_value = 1.00
 
                     # Add sel through sensor
-                    bmc_ssh = obj_bmc.ssh_ipmi_sim
-                    bmc_ssh.send_command_wait_string(str_command = 'sensor value set {} {} {}'.format(sensor_id, sensor_value, chr(13)), wait = 'IPMI_SIM', int_time_out = 3, b_with_buff = False)
+                    ipmi_console = obj_node.ssh_ipmi_console
+                    ipmi_console.send_command_wait_string(str_command='sensor value set {} {} {}'.
+                                                          format(sensor_id, sensor_value, chr(13)),
+                                                          wait='IPMI_SIM',
+                                                          int_time_out=3,
+                                                          b_with_buff=False)
 
                     time.sleep(3)
 
@@ -79,7 +82,10 @@ class T33227_idic_vBMCAddSelThroughSensor(CBaseCase):
 
                         else:
                             # Failed to add sel through sensor
-                            self.result(FAIL, 'Nothing from vBMC. Node is {}, BMC ip is: {}'.format(obj_node.get_name(), obj_bmc.get_ip()))
+                            self.result(FAIL, 'Nothing from vBMC. Node is {}, ipmi-console access: {}:{}'.
+                                        format(obj_node.get_name(),
+                                               obj_node.get_ip(),
+                                               obj_node.get_port_ipmi_console()))
 
                 time.sleep(1)
 

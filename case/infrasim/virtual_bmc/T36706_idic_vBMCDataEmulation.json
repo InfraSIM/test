@@ -1,6 +1,6 @@
 [
     {
-        "//": "below data follows format-- Product Name: {sensor id: expeted sensor status}",
+        "//": "below data follows format-- Product Name: {sensor id: expected sensor status}",
         "//":"Quanta T41",
         "QuantaPlex T41S-2U":{"0xec": "uc" },
         "//": "Quanta D51",
@@ -14,6 +14,10 @@
         "//": "dell r630",
         "":{"0x4": "uc"},
         "//": "dell c6320",
-        "PowerEdge C6320":{"0xb1": "uc"}
+        "PowerEdge C6320":{"0xb1": "uc"},
+        "//": "dell r730",
+        "PowerEdge R730": {"0x04": "uc"},
+        "//": "dell r730xd",
+        "R730 Base": {"0x04": "uc"}
     }
 ]

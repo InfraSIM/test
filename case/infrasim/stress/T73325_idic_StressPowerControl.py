@@ -12,7 +12,9 @@ class T73325_idic_StressPowerControl(CBaseCase):
     def config(self):
         CBaseCase.config(self)
         # To do: Case specific config
-        self.enable_bmc_ssh()
+        self.result(BLOCK, 'No PDU for infrasim-compute at all')
+        return
+        self.enable_node_ssh()
     
     def test(self):
         self.retry = self.data['retry']
@@ -31,6 +33,7 @@ class T73325_idic_StressPowerControl(CBaseCase):
                  format(self.retry, time_end-time_start))
     
     def deconfig(self):
+        return
         for obj_node in self.stack.walk_node():
             obj_node.power_on()
         self.log('INFO', 'Wait 10s for nodes to power on...')
