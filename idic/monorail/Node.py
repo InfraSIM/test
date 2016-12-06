@@ -15,6 +15,8 @@ from idic.monorail.PollerCollection import CPollerCollection
 from idic.monorail.ObmCollection import CObmCollection
 from idic.monorail.WorkflowCollection import CWorkflowCollection
 from lib.Apps import is_valid_ip
+import urllib2
+import json
 
 
 class CNode(CDevice):
@@ -167,9 +169,9 @@ class CNode(CDevice):
         self.__init_obms()
         return self.obj_obm_collection.get_obm_of_service(str_service)
 
-    def get_workflows(self):
+    def get_workflows(self, active=None):
         self.__init_workflows()
-        return self.obj_workflow_collection.get_workflows()
+        return self.obj_workflow_collection.get_workflows(active=active)
 
     def get_workflow_by_id(self, str_id):
         self.__init_workflows()
@@ -186,6 +188,47 @@ class CNode(CDevice):
     def create_workflow(self, dict_payload):
         self.__init_workflows()
         self.obj_workflow_collection.create_workflow(dict_payload)
+
+    def install_os(self, os_name):
+        os_installation_workflows = {
+            "ESXi": "Graph.InstallESXi",
+            "RHEL": "Graph.InstallRHEL",
+            "CentOS": "Graph.InstallCentOS",
+            "Ubuntu": "Graph.InstallUbuntu",
+            "SUSE": "Graph.InstallSUSE",
+            "CoreOS": "Graph.InstallCoreOS",
+            "Windows": "Graph.InstallWindowsServer",
+            "PhotonOS": "Graph.InstallPhotonOS"
+        }
+        if os_name not in os_installation_workflows:
+            raise Exception("BLOCK", 'Target OS "{}" to install is not defined in RackHD workflow.\n'
+                                     'Please refer to RackHD docs for detail:\n'
+                                     '    https://rackhd.readthedocs.io/en/latest/rackhd/install_os.html'.
+                            format(os_name))
+
+        os_installation_payload = {
+            "ESXi": "https://raw.githubusercontent.com/RackHD/RackHD/master/example/samples/install_esx_payload_minimal.json",
+            "RHEL": "https://raw.githubusercontent.com/RackHD/RackHD/master/example/samples/install_rhel_payload_minimal.json",
+            "CentOS": "https://raw.githubusercontent.com/RackHD/RackHD/master/example/samples/install_centos_7_payload_minimal.json",
+            "Ubuntu": "https://raw.githubusercontent.com/RackHD/RackHD/master/example/samples/install_ubuntu_payload_minimal.json",
+            "SUSE": "https://raw.githubusercontent.com/RackHD/RackHD/master/example/samples/install_suse_payload_minimal.json",
+            "CoreOS": "https://raw.githubusercontent.com/RackHD/RackHD/master/example/samples/install_coreos_payload_minimum.json",
+            "Windows": "https://github.com/RackHD/RackHD/blob/master/example/samples/install_windows_payload_minimal.json",
+            "PhotonOS": "https://raw.githubusercontent.com/RackHD/RackHD/master/example/samples/install_photon_os_payload_minimal.json"
+        }
+        os_payload = os_installation_payload[os_name]
+        self.log("INFO", "Going to use payload from:\n{}".format(os_payload))
+
+        try:
+            fp = urllib2.urlopen(os_payload)
+            payload = json.loads(fp.read())
+        except Exception:
+            raise Exception("BLOCK", "Fail to load OS installation payload from {}".format(os_payload))
+
+        # POST OS installation workflow
+        self.__init_workflows()
+        return self.obj_workflow_collection.post_workflow(query="name=Graph.Install{}".format(os_name),
+                                                          payload=payload)
 
     def get_bmc_ip(self):
         """

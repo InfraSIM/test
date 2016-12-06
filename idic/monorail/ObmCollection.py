@@ -10,6 +10,8 @@ This file is a part of puffer automation test framework
 '''
 
 from lib.Device import CDevice
+from urllib2 import HTTPError
+import json
 
 
 class CObmCollection(CDevice):
@@ -25,10 +27,7 @@ class CObmCollection(CDevice):
         # If this is obm managed by monorail, its resource name should be:
         #     obms/library
         self.obj_parent = obj_device
-        if 'nodes' in self.obj_parent.uri.split('/'):
-            self.resource_name = 'obm'
-        else:
-            self.resource_name = 'obms/library'
+        self.resource_name = 'obms'
 
         CDevice.__init__(self, self.resource_name)
         self.set_logger(self.obj_parent.obj_logger)
@@ -83,5 +82,14 @@ class CObmCollection(CDevice):
         """
         self.update()
         return self.dict_obm[str_service]
+
+    def put_node_obm(self, payload):
+        rsp = self.rest_put(self.uri, payload)
+        if rsp["status"] != 201:
+            raise HTTPError(self.uri, rsp['status'],
+                            "Fail to PUT {} with payload:\n{}".
+                            format(self.uri, json.dumps(payload, indent=4)),
+                            None, None)
+        return rsp
 
 
