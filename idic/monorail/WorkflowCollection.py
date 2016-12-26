@@ -37,20 +37,27 @@ class CWorkflowCollection(CDevice):
 
         self.mon_data = {}
 
-    def update(self):
+    def update(self, active=None):
         """
         Update monorail data of self
         """
         self.log('INFO', 'Updating {} ...'.format(self.str_sub_type))
 
         # mon_data analysis
-        self.mon_data = self.rest_get(self.uri)
+        session_uri = ""
+        if active is None:
+            session_uri = self.uri
+        elif active is True:
+            session_uri = self.uri+"?active=true"
+        elif active is False:
+            session_uri = self.uri+"?active=false"
+        self.mon_data = self.rest_get(session_uri)
 
         # init downstream resource
         self.list_workflow_id = []
         self.dict_workflows = {}
         for member in self.mon_data['json']:
-            self.list_workflow_id.append(member['id'])
+            self.list_workflow_id.append(member['instanceId'])
         self.log('INFO', 'Initialize workflows (total count: {0}) ...'.
                  format(len(self.list_workflow_id)))
         gevent.joinall([gevent.spawn(self.__init_workflow, workflow_id)
@@ -70,16 +77,18 @@ class CWorkflowCollection(CDevice):
         self.log('INFO', 'Initialize workflow {}...'.format(str_id))
         self.dict_workflows[str_id] = CWorkflow(self, str_id)
 
-    def get_workflows(self):
+    def get_workflows(self, active=None):
         """
         @return: dict of downstream resource in this format:
                 key: workflow id in string
                 value: workflow instances
             Instance's mon_data is ready
         """
-        self.update()
+        self.update(active=active)
+        # print self.dict_workflows
+        # print self.mon_data['json']
 
-        gevent.joinall([gevent.spawn(self.dict_workflows[dict_data['id']].set_mon_data, dict_data)
+        gevent.joinall([gevent.spawn(self.dict_workflows[dict_data['instanceId']].set_mon_data, dict_data)
                         for dict_data in self.mon_data['json']])
 
         return self.dict_workflows
@@ -131,3 +140,18 @@ class CWorkflowCollection(CDevice):
         self.__init_workflow(str_workflow_id)
         self.dict_workflows[str_workflow_id].set_mon_data(dict_workflow)
         return self.dict_workflows[str_workflow_id]
+
+    def post_workflow(self, query="", payload={}):
+        """
+        POST a workflow with specific query
+        @param query: e.g. "name=Graph.InstallCentOS"
+        """
+        session_uri = "{}?{}".format(self.uri, query)
+        rsp = self.rest_post(uri=session_uri, data=payload)
+        if rsp["status"] != 201:
+            raise HTTPError(self.uri, rsp['status'],
+                            "Fail to POST {} with payload:\n{}".
+                            format(self.uri, json.dumps(payload, indent=4)),
+                            None, None)
+        return rsp
+

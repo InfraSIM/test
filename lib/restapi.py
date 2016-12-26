@@ -21,6 +21,7 @@ import traceback
 from requests.packages import urllib3
 from Logger import CLogger
 
+
 class APIClient(CLogger):
     def __init__(self, verify=False, 
                  username='', 
@@ -34,7 +35,10 @@ class APIClient(CLogger):
         self.password = password
         self.b_session_log = session_log
         self.http_header = headers
-        urllib3.disable_warnings()
+        try:
+            urllib3.disable_warnings()
+        except:
+            pass
 
     def send_get(self, uri, rest_stat=200, rest_payload=None, timeout=None, retry=3):
         '''
@@ -105,41 +109,45 @@ class APIClient(CLogger):
 
         # Perform rest request
         for i in range(retry):
-            self.log('DEBUG', '[Retry:{}/{}][{}][{}]'.
-                     format(i+1, retry, rest_action, url_command))
+            if i == 0:
+                msg = '[{}][{}]'.format(rest_action.upper(), url_command)
+            else:
+                msg = '[Retry:{}/{}][{}][{}]'.format(i+1, retry, rest_action.upper(), url_command)
+            self.log('DEBUG', msg)
+
             try:
                 if rest_action == "get":
                     result_data = requests.get(url_command, 
                                                timeout=timeout,
                                                verify=self.b_verify,
-                                               auth=(self.username, self.password),
+                                               auth=self.get_auth(),
                                                headers=self.http_header)
                 if rest_action == "delete":
                     result_data = requests.delete(url_command, 
                                                   timeout=timeout,
                                                   verify=self.b_verify,
-                                                  auth=(self.username, self.password),
+                                                  auth=self.get_auth(),
                                                   headers=self.http_header)
                 if rest_action == "put":
                     result_data = requests.put(url_command,
-                                              data=json.dumps(rest_payload),
-                                              timeout=timeout,
-                                              verify=self.b_verify,
-                                              auth=(self.username, self.password),
-                                              headers=self.http_header)
-                if rest_action == "post":
-                    result_data = requests.post(url_command,
                                                data=json.dumps(rest_payload),
                                                timeout=timeout,
                                                verify=self.b_verify,
-                                               auth=(self.username, self.password),
+                                               auth=self.get_auth(),
                                                headers=self.http_header)
+                if rest_action == "post":
+                    result_data = requests.post(url_command,
+                                                data=json.dumps(rest_payload),
+                                                timeout=timeout,
+                                                verify=self.b_verify,
+                                                auth=self.get_auth(),
+                                                headers=self.http_header)
                 if rest_action == "patch":
                     result_data = requests.patch(url_command,
                                                  data=json.dumps(rest_payload),
                                                  timeout=timeout,
                                                  verify=self.b_verify,
-                                                 auth=(self.username, self.password),
+                                                 auth=self.get_auth(),
                                                  headers=self.http_header)
             except requests.exceptions.Timeout:
                 if i < retry - 1:
@@ -182,7 +190,20 @@ class APIClient(CLogger):
                 self.add_string_to_session_log('{} {}\n{}\n'.
                     format(rest_action, url_command, str(rsp)))
             return rsp
-    
+
+    def get_auth(self):
+        """
+        If user provide username and password, this rest agent will
+        make autherization with username:password.
+        If user doesn't provide username and password, another autherization
+        must be specified, for example, adding in header.
+        :return: return a (username, password) tuple or None
+        """
+        if self.username and self.password:
+            return (self.username, self.password)
+        else:
+            return None
+
     def disable_verify(self):
         # Disable certificate verification
         self.b_verify = False

@@ -1,0 +1,16 @@
+[
+    {
+        "//": "OS names (case sensitive) are listed for your choice:",
+        "//":     "ESXi",
+        "//":     "RHEL",
+        "//":     "CentOS",
+        "//":     "Ubuntu",
+        "//":     "SUSE",
+        "//":     "CoreOS",
+        "//":     "Windows",
+        "//":     "PhotonOS",
+        "//": "Refer to: https://rackhd.readthedocs.io/en/latest/rackhd/install_os.html",
+        "os_name": "PhotonOS",
+        "force_mode": true
+    }
+]

@@ -89,6 +89,7 @@ b_update_enclosure_before_test = False
 TIME_FORMAT_LOG = '%Y-%m-%d %H:%M:%S'
 TIME_FORMAT_FILE = '%Y%m%d%H%M%S'  
 
+
 def get_idle_enclosure(str_platform, int_tm_id=None):
     global dict_ID_enclosure
     list_idle_enclosure = []
@@ -102,6 +103,7 @@ def get_idle_enclosure(str_platform, int_tm_id=None):
     if int_tm_id == None:
         return list_idle_enclosure
     return lock_enclosures(list_idle_enclosure, int_tm_id)
+
 
 def lock_enclosures(list_enclosure_id, int_tm_id):
     list_enclosure_id_locked = []
@@ -118,11 +120,13 @@ def lock_enclosures(list_enclosure_id, int_tm_id):
                 % (int_tm_id, each_enclosure_id, dict_enclosureID_TMID[each_enclosure_id]))
     return list_enclosure_id_locked
 
+
 def get_enclosure(str_enclosure_id):
     global dict_ID_enclosure
     if dict_ID_enclosure.has_key(str_enclosure_id):
         return dict_ID_enclosure[str_enclosure_id]
     raise Exception('Failed to find enclosure(%s)' % str_enclosure_id)
+
 
 def get_case(str_case_id_or_name):
     global dict_ID_case
@@ -134,6 +138,7 @@ def get_case(str_case_id_or_name):
     # below i don't use exception because we need to allow/consider
     # the case where use typed a wrong case_id or name
     return ''
+
 
 def release_enclosures(list_enclosure_id, int_tm_id):
     list_enclosure_id_released = []
@@ -147,15 +152,18 @@ def release_enclosures(list_enclosure_id, int_tm_id):
                         int_tm_id, each_enclosure_id, dict_enclosureID_TMID[each_enclosure_id]))
     return list_enclosure_id_released
 
+
 def log(str_level, str_message):
     global puffer_logger
     puffer_logger.log(str_level, str_message)
-        
+
+
 def start_email_server():    
     log('INFO', 'Start email server')
     obj_email_server.start()
     log('INFO', 'Email server started')
-    
+
+
 def start_jsonrpc_server():
     global obj_jsonrpc_server
     log('INFO', 'Start JSONRPC server')
@@ -163,13 +171,15 @@ def start_jsonrpc_server():
     thread_jsonrpc_server.setDaemon(True)
     thread_jsonrpc_server.start()
     log('INFO', 'JSONRPC server started')
-    
+
+
 def send_email(str_subject, list_information):
     global obj_email_server
     if not obj_email_server:
         return -1
     obj_email_server.raise_email_request(str_subject, list_information)
     return 0
+
 
 def refresh_case_pool():
     global dict_ID_case
@@ -179,6 +189,7 @@ def refresh_case_pool():
 
     list_file = os.listdir(case_dir)
     dict_ID_case = get_case_in_dir(case_dir)
+
 
 def get_case_in_dir(case_dir):
     '''
@@ -205,6 +216,7 @@ def get_case_in_dir(case_dir):
             dict_ID_case.update(ret)
 
     return dict_ID_case
+
 
 def load_stack(str_target_stack=''):
     '''
@@ -238,6 +250,7 @@ def load_stack(str_target_stack=''):
                 trace back: \n{1}'.format(str_target_stack, traceback.format_exc())
         log('ERROR', errmsg)
 
+
 def load_hwimo(str_hwimo_ip, str_hwimo_username, str_hwimo_password):
     '''
     Load HWIMO IP/username/password into environment
@@ -248,8 +261,10 @@ def load_hwimo(str_hwimo_ip, str_hwimo_username, str_hwimo_password):
         f_hwimo = file(str_hwimo_file)
         j_hwimo = json.load(f_hwimo)
         j_hwimo['ip'] = str_hwimo_ip
-        j_hwimo['username'] = str_hwimo_username
-        j_hwimo['password'] = str_hwimo_password
+        if str_hwimo_username:
+            j_hwimo['username'] = str_hwimo_username
+        if str_hwimo_password:
+            j_hwimo['password'] = str_hwimo_password
         global dict_hwimo
         dict_hwimo = j_hwimo
 

@@ -1,8 +1,10 @@
 {
     "platform": "RackHD",
-    "rest_rev": "1.1",
-    "rest_protocol": "http",
-    "rest_port": 8080,
-    "username": "",
-    "password": ""
+    "rest_rev": "2.0",
+    "rest_protocol": "https",
+    "rest_port": 443,
+    "username": "onrack",
+    "password": "onrack",
+    "rest_username": "admin",
+    "rest_password": "admin123"
 }

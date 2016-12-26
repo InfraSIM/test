@@ -24,6 +24,7 @@ from idic.monorail.Workflow import CWorkflow
 from idic.monorail.SkuCollection import CSkuCollection
 from urllib2 import HTTPError
 
+
 class CMonorail(CDevice):
     def __init__(self, dict_hwimo):
         '''
@@ -49,6 +50,8 @@ class CMonorail(CDevice):
             self.ip = dict_hwimo['ip']
             self.username = dict_hwimo['username']
             self.password = dict_hwimo['password']
+            self.rest_username = dict_hwimo['rest_username']
+            self.rest_password = dict_hwimo['rest_password']
 
             # Monorail REST info
             self.str_mon_rev = dict_hwimo['rest_rev']
@@ -64,6 +67,7 @@ class CMonorail(CDevice):
 
         self.obj_rest_agent = APIClient()
         self.set_rest_agent(self.obj_rest_agent)
+        self.set_rackhd_rest_auth()
         self.obj_ssh_agent = CSSH(self.ip, self.username, self.password)
 
         self.b_valid = True
@@ -117,6 +121,7 @@ class CMonorail(CDevice):
 
         # init sub resource
         self.__init_catalogs()
+        self.__init_nodes()
 
         self.log('INFO', 'Updating {} done'.format(self.str_sub_type))
 
@@ -269,6 +274,20 @@ class CMonorail(CDevice):
         self.__init_obms()
         return self.obms.get_obm_of_service(str_service)
 
+    def put_node_ipmi_obm(self, node_id, host, username, password):
+        payload = {
+            "service": "ipmi-obm-service",
+            "nodeId": node_id,
+            "config": {
+                "host": host,
+                "user": username,
+                "password": password
+            }
+        }
+
+        self.__init_obms()
+        return self.obms.put_node_obm(payload)
+
     def get_lookups(self):
         self.__init_lookups()
         return self.obj_lookups.get_lookups()
@@ -345,7 +364,6 @@ class CMonorail(CDevice):
 
         return list_workflows
 
-
     def get_config(self):
         """
         Get monorail config of the API /config
@@ -360,3 +378,34 @@ class CMonorail(CDevice):
 
     def get_revision(self):
         pass
+
+    def set_rackhd_rest_auth(self):
+        """
+        This routine will set token for RackHD REST api handler.
+        """
+        str_token = self.get_rackhd_rest_token()
+        if str_token:
+            self.obj_rest_agent.http_header['Authorization'] = "JWT "+str_token
+        else:
+            raise Exception('Fail to set RackHD API authentication token')
+
+    def get_rackhd_rest_token(self):
+        """
+        This routine will login RackHD to get a token.
+        """
+        login_url = "{0}://{1}:{2}/login".format(self.str_mon_protocol,
+                                                 self.ip,
+                                                 self.str_mon_port)
+        login_payload = {"username": self.rest_username, "password": self.rest_password}
+
+        try:
+            self.obj_rest_agent.disable_log()
+            login_resp = self.obj_rest_agent.restful(str(login_url), 'post', rest_payload=login_payload)
+        finally:
+            self.obj_rest_agent.enable_log()
+
+        if login_resp["status"] != 200:
+            self.log('WARNING', 'Fail to get OnRack authentication token')
+        else:
+            token = login_resp['json']['token']
+        return str(token)
