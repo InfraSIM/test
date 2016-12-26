@@ -135,8 +135,9 @@ class CNode(CDevice):
             return
 
         # Connect
-        self.ssh.send_command('ipmitool -I lanplus -H localhost -U {} -P {} sol activate{}'.
-                              format(self.bmc.get_username(),
+        self.ssh.send_command('ipmitool -I lanplus -H {} -U {} -P {} sol activate{}'.
+                              format(self.bmc.get_ip(),
+                                     self.bmc.get_username(),
                                      self.bmc.get_password(),
                                      chr(13)))
 
