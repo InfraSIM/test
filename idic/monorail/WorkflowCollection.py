@@ -57,7 +57,7 @@ class CWorkflowCollection(CDevice):
         self.list_workflow_id = []
         self.dict_workflows = {}
         for member in self.mon_data['json']:
-            self.list_workflow_id.append(member['id'])
+            self.list_workflow_id.append(member['instanceId'])
         self.log('INFO', 'Initialize workflows (total count: {0}) ...'.
                  format(len(self.list_workflow_id)))
         gevent.joinall([gevent.spawn(self.__init_workflow, workflow_id)
@@ -88,7 +88,7 @@ class CWorkflowCollection(CDevice):
         # print self.dict_workflows
         # print self.mon_data['json']
 
-        gevent.joinall([gevent.spawn(self.dict_workflows[dict_data['id']].set_mon_data, dict_data)
+        gevent.joinall([gevent.spawn(self.dict_workflows[dict_data['instanceId']].set_mon_data, dict_data)
                         for dict_data in self.mon_data['json']])
 
         return self.dict_workflows

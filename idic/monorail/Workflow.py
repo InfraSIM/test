@@ -12,7 +12,7 @@ This file is a part of puffer automation test framework
 import re
 from lib.Device import CDevice
 
-p_hash = re.compile(r'^[0-9a-f]{24}$')
+p_hash = re.compile(r'[0-9a-f]{8}\-([0-9a-f]{4}\-){3}[0-9a-f]{12}')
 
 
 class CWorkflow(CDevice):
@@ -37,7 +37,7 @@ class CWorkflow(CDevice):
         # If str_id is a 24 width hash code, this workflow
         # should be a downstream resource of Monorail root
         elif p_hash.findall(str_id):
-            str_root = self.obj_parent.uri.split('/', 5)[0:5]
+            str_root = '/'.join(self.obj_parent.uri.split('/', 5)[0:5])
             self.uri = '{}/workflows/{}'.format(str_root, str_id)
         # If str_id is 'library', which is specified by a static
         # library workflow definition, this workflow shall have no
@@ -140,3 +140,22 @@ class CWorkflow(CDevice):
         else:
             self.log('INFO', 'Delete node (ID: {}) active workflow done'.
                      format(list_element[2]))
+
+    def cancel(self):
+        """
+        Cancel this workflow if it's active
+        """
+        payload = {
+            "command": "cancel",
+            "options": {}
+        }
+        self.log('INFO', 'Cancel workflow (instance ID: {})...'.format(self.instanceId))
+        rsp = self.rest_put(self.uri+"/action", payload)
+
+        if rsp.get('status', None) != 202:
+            raise Exception('Cancel workflow (instance ID: {}) fail, http status: {}, response: {}'.
+                            format(self.instanceId, rsp.get('status', None), rsp.get('text', '')))
+        else:
+            self.log('INFO', 'Cancel workflow (instance ID: {}) done'.
+                     format(self.instanceId))
+

@@ -50,6 +50,7 @@ class T0000_rackhd_OSInstall(CBaseCase):
                                    "- sudo apt-get install nfs-common\n"
                                    "\n"
                                    "{}".format(sources_list))
+                return
 
         # Check if any node has any active workflows
         for node_id, node in self.monorail.get_nodes("compute").items():
@@ -57,14 +58,16 @@ class T0000_rackhd_OSInstall(CBaseCase):
             if len(rsp) != 0:
                 workflow_obj = rsp[0][1]
                 workflow_instance_id = workflow_obj.instanceId
-                print workflow_instance_id
-                self.result(BLOCK, "There is {0} active workflow(s) on node {1}.\n"
-                                   "You may want to check it with: \n"
-                                   "    GET /workflows/{2}\n"
-                                   "or cancel it with: \n"
-                                   "    PUT /workflows/{2}/action".
-                            format(len(rsp), node_id, workflow_instance_id))
-                return
+                if not self.data["force_mode"]:
+                    self.result(BLOCK, "There is {0} active workflow(s) on node {1}.\n"
+                                       "You may want to check it with: \n"
+                                       "    GET /workflows/{2}\n"
+                                       "or cancel it with: \n"
+                                       "    PUT /workflows/{2}/action".
+                                format(len(rsp), node_id, workflow_instance_id))
+                    return
+                else:
+                    workflow_obj.cancel()
 
         # Start workflow to install OS
         for node_id, node in self.monorail.get_nodes("compute").items():

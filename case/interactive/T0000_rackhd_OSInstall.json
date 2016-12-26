@@ -10,6 +10,7 @@
         "//":     "Windows",
         "//":     "PhotonOS",
         "//": "Refer to: https://rackhd.readthedocs.io/en/latest/rackhd/install_os.html",
-        "os_name": "PhotonOS"
+        "os_name": "PhotonOS",
+        "force_mode": true
     }
 ]
