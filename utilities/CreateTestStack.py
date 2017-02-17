@@ -1,3 +1,4 @@
+#!/usr/bin/env python
 """
 This is an utility to accept ip inventory as admin
 network, then:
@@ -255,7 +256,7 @@ def write_stack(path):
 
 if __name__ == "__main__":
     if len(sys.argv) != 3:
-        print "CreateTestStack.py [ansible_inventory_path] [target_stack_path]"
+        print "./CreateTestStack.py [ansible_inventory_path] [target_stack_path]"
         exit(-1)
 
     inventory_path = sys.argv[1]

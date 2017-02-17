@@ -1,3 +1,4 @@
+#!/usr/bin/env python
 """
 This is a utility to accept IP pool and write
 ansible inventory file.
@@ -5,6 +6,8 @@ ansible inventory file.
 
 import jinja2
 import os
+import sys
+import re
 
 POLICY_RANDOM_ALL = 1
 POLICY_SATISFY = 2
@@ -22,6 +25,8 @@ node_type = [
     "dell_c6320"
 ]
 
+p_admin_ip = r"==> vagrant\d*: (?P<ip>\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})"
+
 
 # Find template from test/doc/template_ansible_inventory
 path_template = os.sep.join(
@@ -30,26 +35,12 @@ path_template = os.sep.join(
     +["doc", "template_ansible_inventory"])
 
 
-def load_ip_pool(filepath=""):
-    list_ip_pool = [
-        "192.168.1.1",
-        "192.168.1.2",
-        "192.168.1.3",
-        "192.168.1.4",
-        "192.168.1.5",
-        "192.168.1.6",
-        "192.168.1.7",
-        "192.168.1.8",
-        "192.168.1.9",
-        "192.168.1.10",
-        "192.168.1.11",
-        "192.168.1.12",
-        "192.168.1.13",
-        "192.168.1.14",
-        "192.168.1.15",
-        "192.168.1.16",
-        "192.168.1.17"
-    ]
+def load_ip_pool(path):
+    global p_admin_ip
+    with open(path, 'r') as fp:
+        text = fp.read()
+    r = re.compile(p_admin_ip)
+    list_ip_pool = r.findall(text)
 
     return list_ip_pool
 
@@ -94,6 +85,13 @@ def write_inventory(assignment, path="inventory"):
 
 
 if __name__ == "__main__":
-    ip_pool = load_ip_pool()
+    if len(sys.argv) != 3:
+        print "./CreateAnsibleInventory.py [file_for_search] [ansible_inventory_path]"
+        exit(-1)
+
+    file_path = sys.argv[1]
+    inventory_path = sys.argv[2]
+
+    ip_pool = load_ip_pool(file_path)
     ip_assignment = assign_ip_pool(ip_pool)
-    write_inventory(ip_assignment)
+    write_inventory(ip_assignment, inventory_path)
