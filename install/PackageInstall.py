@@ -125,3 +125,4 @@ if __name__ == '__main__':
     install_and_import('requests')
     install_and_import('six')
     install_and_import('pysnmp')
+    install_and_import('jinja2')

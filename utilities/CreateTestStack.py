@@ -1,0 +1,308 @@
+#!/usr/bin/env python
+"""
+This is an utility to accept ip inventory as admin
+network, then:
+- validate SSH on admin network
+- analyze node network
+- (if necessary, update infrasim code and install)
+- (if necessary, define bmc network and qemu network)
+- update node yml file
+- start infrasim instance
+- validate ipmi access
+- write stack.json in puffer style
+"""
+
+
+import paramiko
+import sys
+import traceback
+import socket
+import json
+import subprocess
+import time
+from ansible import inventory
+
+node_type = [
+    "quanta_t41",
+    "quanta_d51",
+    "s2600kp",
+    "s2600tp",
+    "s2600wtt",
+    "dell_r730xd",
+    "dell_r730",
+    "dell_r630",
+    "dell_c6320"
+]
+full_group = "virtual_server"
+ssh_username = ""
+ssh_password = ""
+inventory_path = ""
+hosts = {}
+host_to_bmc = {}
+
+
+def run_command(cmd="", shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE):
+    child = subprocess.Popen(cmd, shell=shell, stdout=stdout, stderr=stderr)
+    cmd_result = child.communicate()
+    cmd_return_code = child.returncode
+    if cmd_return_code != 0:
+        result = ""
+        if cmd_result[1] is not None:
+            result = cmd + ":" + cmd_result[1]
+        else:
+            result = cmd
+        raise Exception("[FAIL] {}".format(result))
+    return 0, cmd_result[0]
+
+
+def validate_ansible():
+    _, rsp = run_command("ansible --version")
+    version = rsp.split()[1]
+    if version.startswith("1."):
+        print "Ansible version: {}, require ansible>=2.0".format(version)
+        print "Install ansible>=2.0 needs a PPA, refer to: "
+        print "http://docs.ansible.com/ansible/intro_installation.html#latest-releases-via-apt-ubuntu"
+        exit(-1)
+
+
+def scan_inventory(path):
+    """
+    Given an infrasim inventory path, analyze all host and group in dict.
+    """
+    dict_group = {}
+    for one_type in node_type:
+        dict_group[one_type] = []
+    global ssh_username
+    global ssh_password
+    global hosts
+
+    inv = inventory.Inventory(path)
+    groups = inv.get_groups()
+    for group in groups:
+        if group.name in node_type:
+            hosts = group.get_hosts()
+            for host in hosts:
+                dict_group[group.name].append(host.name)
+        elif group.name == full_group:
+            vars = group.get_variables()
+            ssh_username = vars["ansible_become_user"]
+            ssh_password = vars["ansible_become_pass"]
+
+    hosts = dict_group
+    return
+
+
+def validate_admin_access():
+    global hosts
+    global host_to_bmc
+
+    cmd = "ifconfig ens192 | awk '/inet addr/{print substr($2,6)}'"
+
+    for node_type in hosts:
+        for host in hosts[node_type]:
+            try:
+                client = paramiko.SSHClient()
+                client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+                client.connect(host, username="infrasim", password="infrasim")
+
+            except paramiko.AuthenticationException:
+                print 'SSH authentication error, please check username and password'
+                return False
+            except paramiko.SSHException:
+                print 'Error happen in SSH connect: \n{}'.format(traceback.format_exc())
+                return False
+            except socket.error:
+                print 'WARNING', 'Socket error while connection: \n{}'.format(traceback.format_exc())
+                return False
+            except Exception:
+                print 'WARNING', 'Fail to build SSH connection: \n{}'.format(traceback.format_exc())
+                return False
+            else:
+                print "SSH to {} is validated".format(host)
+
+
+            try:
+                stdin, stdout, stderr = client.exec_command(cmd)
+                while not stdout.channel.exit_status_ready():
+                    pass
+            except paramiko.SSHException:
+                print 'SSH exception when execute command on remote shell: {}'.format(cmd)
+            finally:
+                client.close()
+
+            str_stdout = ''.join(stdout.readlines())
+            str_stderr = stderr.channel.recv_stderr(4096)
+            int_exitcode = stdout.channel.recv_exit_status()
+
+            if int_exitcode != 0 or "error fetching interface information" in str_stderr:
+                raise Exception("Fail to fetch IP of ens192 on node {}".format(host))
+            else:
+                host_to_bmc[host] = str_stdout.strip()
+
+    return True
+
+
+def clear_node():
+    global full_group
+    global inventory_path
+    global hosts
+    cmd = "ansible {} -i {} -m shell -a \"echo infrasim | " \
+          "sudo -S ipmi-console stop\"".\
+        format(full_group, inventory_path)
+    _, rsp = run_command(cmd)
+    print rsp
+    # Verify operations on all nodes are successful
+    for hosts_of_this_kind in hosts.values():
+        for host in hosts_of_this_kind:
+            if "{} | SUCCESS | rc=0 >>".format(host) in rsp:
+                print "ipmi-console on {} is stopped".format(host)
+            else:
+                raise Exception("ipmi-console on {} fail to stop".format(host))
+
+    cmd = "ansible {} -i {} -m shell -a \"echo infrasim | " \
+          "sudo -S infrasim node stop\"".\
+        format(full_group, inventory_path)
+    _, rsp = run_command(cmd)
+    print rsp
+    # Verify operations on all nodes are successful
+    for hosts_of_this_kind in hosts.values():
+        for host in hosts_of_this_kind:
+            if "{} | SUCCESS | rc=0 >>".format(host) in rsp:
+                print "infrasim node instance on {} is stopped".format(host)
+            else:
+                raise Exception("infrasim node instance on {} fail to stop".format(host))
+
+
+def update_node_type():
+    global inventory_path
+    global hosts
+    for node_type in hosts:
+        cmd = "ansible {0} -i {1} -b -m shell -a \"echo infrasim | " \
+              "sudo -S sed -i 's/^\(type: \).*/\\1{0}/' ~/.infrasim/.node_map/default.yml\"".\
+            format(node_type, inventory_path)
+        _, rsp = run_command(cmd)
+        print rsp
+        for host in hosts[node_type]:
+            if "{} | SUCCESS | rc=0 >>".format(host) in rsp:
+                print "default.yml on {} is updated to {}".format(host, node_type)
+            else:
+                raise Exception("default.yml on {} fail to be updated to {}".format(host, node_type))
+
+
+def start_node():
+    global full_group
+    global inventory_path
+    global hosts
+
+    cmd = "ansible {} -i {} -m shell -a \"echo infrasim | " \
+          "setsid sudo -S infrasim node start\"".\
+        format(full_group, inventory_path)
+    _, rsp = run_command(cmd)
+    print rsp
+    # Verify operations on all nodes are successful
+    for hosts_of_this_kind in hosts.values():
+        for host in hosts_of_this_kind:
+            if "{} | SUCCESS | rc=0 >>".format(host) in rsp:
+                print "infrasim node instance on {} is started".format(host)
+            else:
+                raise Exception("infrasim node instance on {} fail to start".format(host))
+
+    cmd = "ansible {} -i {} -m shell -a \"echo infrasim | " \
+          "setsid sudo -S ipmi-console start\"".\
+        format(full_group, inventory_path)
+    _, rsp = run_command(cmd)
+    print rsp
+    # Verify operations on all nodes are successful
+    for hosts_of_this_kind in hosts.values():
+        for host in hosts_of_this_kind:
+            if "{} | SUCCESS | rc=0 >>".format(host) in rsp:
+                print "ipmi-console on {} is started".format(host)
+            else:
+                raise Exception("ipmi-console on {} fail to start".format(host))
+
+
+def validate_bmc_access():
+    global host_to_bmc
+
+    for host, bmc in host_to_bmc.items():
+        run_command('ipmitool -I lanplus -U admin -P admin -H {}'.format(bmc))
+
+
+def write_stack(path):
+    global hosts
+    global host_to_bmc
+
+    stack = {
+        "vRacks": [
+            {
+                "name": "vRack1",
+                "vPDU": [],
+                "vSwitch": [],
+                "vNode": []
+            }
+        ]
+    }
+
+    for node_type in hosts:
+        for host in hosts[node_type]:
+            node = {}
+            node["name"] = "{}_{}".format(node_type, host)
+            node["admin"] = {
+                "ip": host,
+                "username": "infrasim",
+                "password": "infrasim"
+            }
+            node["bmc"] = {
+                "ip": host_to_bmc[host],
+                "username": "admin",
+                "password": "admin"
+            }
+            node["power"] = []
+            stack["vRacks"][0]["vNode"].append(node)
+
+    with open(path, 'w') as fp:
+        json.dump(stack, fp, indent=4)
+
+
+if __name__ == "__main__":
+    if len(sys.argv) != 3:
+        print "./CreateTestStack.py [ansible_inventory_path] [target_stack_path]"
+        exit(-1)
+
+    inventory_path = sys.argv[1]
+    stack_path = sys.argv[2]
+
+    print '-'*40
+    print '[Validate ansible version]'
+    validate_ansible()
+
+    print '-'*40
+    print '[Scan inventory file {}]'.format(inventory_path)
+    scan_inventory(inventory_path)
+    print json.dumps(hosts, indent=4)
+
+    print '-'*40
+    print '[Validate SSH connection]'
+    validate_admin_access()
+
+    print '-'*40
+    print '[Stop running instances]'
+    clear_node()
+
+    print '-'*40
+    print '[Update node type in yml]'
+    update_node_type()
+
+    print '-'*40
+    print '[Start infrasim instances]'
+    start_node()
+
+    time.sleep(2)
+
+    print '-'*40
+    print '[Validate BMC access]'
+    validate_bmc_access()
+
+    print '-'*40
+    print '[Export stack description file to {}]'.format(stack_path)
+    write_stack(stack_path)
