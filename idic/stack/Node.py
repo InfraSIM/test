@@ -201,8 +201,8 @@ class CNode(CDevice):
         self.log("INFO", "Get runtime instance name from node {}...".format(self.get_ip()))
         p_name = re.compile(r"] (.*)-node is running")
 
-        rsp = self.ssh.send_command_wait_string(str_command='echo {} | sudo -S infrasim-main status {}'.
-                                                format(self.username, chr(13)),
+        rsp = self.ssh.send_command_wait_string(str_command='echo {} | sudo -S infrasim node status {}'.
+                                                format(self.password, chr(13)),
                                                 wait='~$')
 
         list_name = list(set(p_name.findall(rsp)))
@@ -223,7 +223,7 @@ class CNode(CDevice):
         '''
         self.log("INFO", "Update config for instance {} on node {}...".format(str_instance_name, self.get_ip()))
         self.log("INFO", "{}: \n{}".format(" > ".join(key), json.dumps(payload, indent=4)))
-        remote_path = os.path.join(".infrasim", str_instance_name, "data", "infrasim.yml")
+        remote_path = os.path.join(".infrasim", str_instance_name, "etc", "infrasim.yml")
         with self.ssh.h_ssh.open_sftp() as sftp:
             conf = None
             with sftp.open(remote_path, 'r') as remote_file:
@@ -245,7 +245,7 @@ class CNode(CDevice):
         :return:
         '''
         self.log("INFO", "Get config for instance {} on node {}...".format(str_instance_name, self.get_ip()))
-        remote_path = os.path.join(".infrasim", str_instance_name, "data", "infrasim.yml")
+        remote_path = os.path.join(".infrasim", str_instance_name, "etc", "infrasim.yml")
         with self.ssh.h_ssh.open_sftp() as sftp:
             with sftp.open(remote_path, 'r') as remote_file:
                 return yaml.load(remote_file)
