@@ -55,6 +55,16 @@ def run_command(cmd="", shell=True, stdout=subprocess.PIPE, stderr=subprocess.PI
     return 0, cmd_result[0]
 
 
+def validate_ansible():
+    _, rsp = run_command("ansible --version")
+    version = rsp.split()[1]
+    if version.startswith("1."):
+        print "Ansible version: {}, require ansible>=2.0".format(version)
+        print "Install ansible>=2.0 needs a PPA, refer to: "
+        print "http://docs.ansible.com/ansible/intro_installation.html#latest-releases-via-apt-ubuntu"
+        exit(-1)
+
+
 def scan_inventory(path):
     """
     Given an infrasim inventory path, analyze all host and group in dict.
@@ -261,6 +271,10 @@ if __name__ == "__main__":
 
     inventory_path = sys.argv[1]
     stack_path = sys.argv[2]
+
+    print '-'*40
+    print '[Validate ansible version]'
+    validate_ansible()
 
     print '-'*40
     print '[Scan inventory file {}]'.format(inventory_path)
