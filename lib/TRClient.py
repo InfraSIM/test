@@ -19,6 +19,7 @@ from restapi import APIClient
 import urllib2
 import base64
 import json
+import ssl
 
 class TestRailClient:
 
@@ -26,13 +27,13 @@ class TestRailClient:
         self.str_user = str_user
         self.str_password = str_password
         self.str_server_addr = str_server_addr
-    
+
     def user(self):
         return self.str_user
-    
+
     def server_addr(self):
         return self.str_server_addr
-    
+
     def get_case(self, int_case_id):
         str_rest_uri = '{0}/get_case/{1}'.\
             format(self.server_addr(), int_case_id)
@@ -74,19 +75,19 @@ class TestRailClient:
                      'case_ids': list_case_id
                      }
         return self.send_post(str_rest_uri, dict_data)
-    
+
     def delete_test_run(self, int_test_run_id):
         str_rest_uri = '{0}/delete_run/{1}'.\
             format(self.server_addr(), int_test_run_id)
         dict_data = {}
         return self.send_post(str_rest_uri, dict_data)
-    
+
     def close_test_run(self, int_test_run_id):
         str_rest_uri = '{0}/close_run/%{1}'.\
             format(self.server_addr(), int_test_run_id)
         dict_data = {}
         return self.send_post(str_rest_uri, dict_data)
-    
+
     def add_test_plan(self, int_project_id, str_name, list_test_run=[],
                       str_description=None, int_milestone_id=None):
         str_rest_uri = '{0}/add_plan/{1}'.\
@@ -98,7 +99,7 @@ class TestRailClient:
             'entries': list_test_run
         }
         return self.send_post(str_rest_uri, dict_data)
-        
+
     def add_plan_entry(self, int_test_plan_id,
                        int_suite_id,
                        list_case_ids=[],
@@ -129,25 +130,25 @@ class TestRailClient:
                 'config_ids': list_config_ids_test_run
             }
             dict_data['runs'].append(dict_data_test_run)
-            
+
         return self.send_post(str_rest_uri, dict_data)
-    
+
     def get_test_plan(self, int_test_plan_id):
         str_rest_uri = '{0}/get_plan/{1}'.\
             format(self.server_addr(), int_test_plan_id)
         return self.send_get(str_rest_uri)
-        
+
     def delete_test_plan(self, int_test_plan_id):
         str_rest_uri = '{0}/delete_plan/{1}'.\
             format(self.server_addr(), int_test_plan_id)
         dict_data = {}
         return self.send_post(str_rest_uri, dict_data)
-    
+
     def close_test_plan(self, int_test_plan_id):
         str_rest_uri = '{0}/close_plan/{1}'.format(self.server_addr(), int_test_plan_id)
         dict_data = {}
         return self.send_post(str_rest_uri, dict_data)
-    
+
     def add_case_result(self, int_test_run_id, int_test_case_id,
                         int_status, str_comment=None, str_duration_time=''):
         str_rest_uri = '{0}/add_result_for_case/{1}/{2}'.\
@@ -158,7 +159,7 @@ class TestRailClient:
             'elapsed': str_duration_time
         }
         return self.send_post(str_rest_uri, dict_data)
-    
+
     def get_case_result(self):
         pass
 
@@ -197,7 +198,8 @@ class TestRailClient:
         all_error = ''
         for i in range(1 + retry):
             try:
-                response = urllib2.urlopen(request).read()
+                context = ssl._create_unverified_context()
+                response = urllib2.urlopen(request, context=context).read()
                 result = json.loads(response)
                 return result
             except urllib2.HTTPError as e:
