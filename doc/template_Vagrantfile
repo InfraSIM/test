@@ -10,10 +10,10 @@ BOX_IMAGE = 'infrasim'
 NODE_COUNT = {{node_count}}
 Vagrant.configure("2") do |config|
   (1...NODE_COUNT).each do |i|
-    config.vm.define "Templatebycmd#{i}" do |subconfig|
+    config.vm.define "vagrant#{i}" do |subconfig|
       subconfig.vm.box = BOX_IMAGE
       subconfig.vm.box_url = './infrasim.box'
-      subconfig.vm.hostname = "Templatebycmd#{i}"
+      subconfig.vm.hostname = "vagrant#{i}"
       #config.ssh
       subconfig.ssh.username = 'infrasim'
       subconfig.ssh.password = 'infrasim'
