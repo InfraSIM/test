@@ -21,6 +21,8 @@ import json
 import subprocess
 import time
 from ansible import inventory
+from ansible.vars import VariableManager
+from ansible.parsing.dataloader import DataLoader
 
 node_type = [
     "quanta_t41",
@@ -76,15 +78,19 @@ def scan_inventory(path):
     global ssh_password
     global hosts
 
-    inv = inventory.Inventory(path)
+    variable_manager = VariableManager()
+    loader = DataLoader()
+
+    inv = inventory.Inventory(loader=loader, variable_manager=variable_manager, host_list=path)
     groups = inv.get_groups()
-    for group in groups:
+    for g in groups:
+        group = groups[g]
         if group.name in node_type:
             hosts = group.get_hosts()
             for host in hosts:
                 dict_group[group.name].append(host.name)
         elif group.name == full_group:
-            vars = group.get_variables()
+            vars = group.get_vars()
             ssh_username = vars["ansible_become_user"]
             ssh_password = vars["ansible_become_pass"]
 
@@ -125,19 +131,18 @@ def validate_admin_access():
                 stdin, stdout, stderr = client.exec_command(cmd)
                 while not stdout.channel.exit_status_ready():
                     pass
+                str_stdout = ''.join(stdout.readlines())
+                str_stderr = stderr.channel.recv_stderr(4096)
+                int_exitcode = stdout.channel.recv_exit_status()
+
+                if int_exitcode != 0 or "error fetching interface information" in str_stderr:
+                    raise Exception("Fail to fetch IP of ens192 on node {}".format(host))
+                else:
+                    host_to_bmc[host] = str_stdout.strip()
             except paramiko.SSHException:
                 print 'SSH exception when execute command on remote shell: {}'.format(cmd)
             finally:
                 client.close()
-
-            str_stdout = ''.join(stdout.readlines())
-            str_stderr = stderr.channel.recv_stderr(4096)
-            int_exitcode = stdout.channel.recv_exit_status()
-
-            if int_exitcode != 0 or "error fetching interface information" in str_stderr:
-                raise Exception("Fail to fetch IP of ens192 on node {}".format(host))
-            else:
-                host_to_bmc[host] = str_stdout.strip()
 
     return True
 
@@ -225,7 +230,7 @@ def validate_bmc_access():
     global host_to_bmc
 
     for host, bmc in host_to_bmc.items():
-        run_command('ipmitool -I lanplus -U admin -P admin -H {}'.format(bmc))
+        run_command('ipmitool -I lanplus -U admin -P admin -H {} user list'.format(bmc))
 
 
 def write_stack(path):
