@@ -1,0 +1,36 @@
+# -*- mode: ruby -*-
+# vi: set ft=ruby :
+$script = <<SCRIPT
+cd /vagrant
+sudo ifconfig ens160 | awk '/inet addr/{print substr($2,6)}' > ip.txt
+sudo cat ip.txt
+SCRIPT
+
+BOX_IMAGE = 'infrasim'
+NODE_COUNT = {{node_count}}
+Vagrant.configure("2") do |config|
+  (1...NODE_COUNT).each do |i|
+    config.vm.define "Templatebycmd#{i}" do |subconfig|
+      subconfig.vm.box = BOX_IMAGE
+      subconfig.vm.box_url = './infrasim.box'
+      subconfig.vm.hostname = "Templatebycmd#{i}"
+      #config.ssh
+      subconfig.ssh.username = 'infrasim'
+      subconfig.ssh.password = 'infrasim'
+      subconfig.ssh.insert_key = true
+      subconfig.vm.provision "shell", inline: $script, privileged: false
+    end
+
+    config.vm.provider :vsphere do |vsphere|
+      vsphere.host = '{{v_host}}'
+      vsphere.compute_resource_name = '{{v_esxi}}'
+      vsphere.resource_pool_name = 'vagrant'
+      vsphere.template_name = '/Discovered virtual machine/{{v_template}}'
+      vsphere.vm_base_path = 'vagrant-machines'
+      vsphere.user = '{{v_user}}'
+      vsphere.password = '{{v_pass}}'
+      vsphere.insecure = true
+      #vsphere.customization_spec_name = 'vagrant-spec'
+    end
+  end
+end
