@@ -60,7 +60,7 @@ def parse_options():
                              type='string', dest='v_esxi', default='',
                              help='[Mandatory] Target ESXi')
     group_vsphere.add_option('-t', '--template', action='store',
-                             type='string', dest='v_tempate', default='',
+                             type='string', dest='v_template', default='',
                              help='[Mandatory] vSphere template path')
     parser.add_option_group(group_vsphere)
 
@@ -87,6 +87,9 @@ def write_vagrantfile():
     if not options.v_pass:
         print 'vCenter password (-p) is missing'
         is_legal = False
+    if not options.v_template:
+        print 'Template file (-t) is missing'
+        is_legal = False
     if not is_legal:
         print 'Fail to write Vagrantfile!'
         exit(-1)
@@ -98,7 +101,8 @@ def write_vagrantfile():
                                 v_host=options.v_center,
                                 v_esxi=options.v_esxi,
                                 v_user=options.v_user,
-                                v_pass=options.v_pass)
+                                v_pass=options.v_pass,
+                                v_template=options.v_template)
     with open(options.output, "w") as fp:
         fp.write(inventory)
 
