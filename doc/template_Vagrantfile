@@ -23,7 +23,8 @@ Vagrant.configure("2") do |config|
 
     config.vm.provider :vsphere do |vsphere|
       vsphere.host = '{{v_host}}'
-      vsphere.compute_resource_name = '{{v_esxi}}'
+      vsphere.data_center_name = '{{v_datacenter}}'
+      vsphere.compute_resource_name = '{{v_compute}}'
       vsphere.resource_pool_name = 'vagrant'
       vsphere.template_name = '/Discovered virtual machine/{{v_template}}'
       vsphere.vm_base_path = 'vagrant-machines'

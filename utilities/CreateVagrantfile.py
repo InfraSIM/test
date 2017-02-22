@@ -47,8 +47,8 @@ def parse_options():
     # vSphere options
     group_vsphere = OptionGroup(parser, 'vSphere Options')
 
-    group_vsphere.add_option('-c', '--vcenter', action='store',
-                             type='string', dest='v_center', default='',
+    group_vsphere.add_option('', '--host', action='store',
+                             type='string', dest='v_center_host', default='',
                              help='[Mandatory] vCenter host name')
     group_vsphere.add_option('-u', '--user', action='store',
                              type='string', dest='v_user', default='',
@@ -56,9 +56,13 @@ def parse_options():
     group_vsphere.add_option('-p', '--pass', action='store',
                              type='string', dest='v_pass', default='',
                              help='[Mandatory] vCenter password')
-    group_vsphere.add_option('-e', '--esxi', action='store',
-                             type='string', dest='v_esxi', default='',
-                             help='[Mandatory] Target ESXi')
+    group_vsphere.add_option('-d', '--datacenter', action='store',
+                             type='string', dest='v_datacenter', default='',
+                             help='[Mandatory] Target cluster')
+    group_vsphere.add_option('-c', '--compute', action='store',
+                             type='string', dest='v_compute', default='',
+                             help='[Mandatory] Target compute resource name, '
+                                  'it can be ESXi host name, or cluster name')
     group_vsphere.add_option('-t', '--template', action='store',
                              type='string', dest='v_template', default='',
                              help='[Mandatory] vSphere template path')
@@ -75,11 +79,14 @@ def write_vagrantfile():
     global path_template
 
     is_legal = True
-    if not options.v_center:
-        print 'vCenter host name (-c) is missing'
+    if not options.v_center_host:
+        print 'vCenter host name (--host) is missing'
         is_legal = False
-    if not options.v_esxi:
-        print 'ESXi compute resource (-e) is missing'
+    if not options.v_datacenter:
+        print 'Datacenter name (-d) is missing'
+        is_legal = False
+    if not options.v_compute:
+        print 'Compute resource (-c) is missing'
         is_legal = False
     if not options.v_user:
         print 'vCenter user name (-u) is missing'
@@ -98,8 +105,9 @@ def write_vagrantfile():
         vagrantfile_template = fp.read()
     template = jinja2.Template(vagrantfile_template)
     inventory = template.render(node_count=options.node_number,
-                                v_host=options.v_center,
-                                v_esxi=options.v_esxi,
+                                v_host=options.v_center_host,
+                                v_datacenter=options.v_datacenter,
+                                v_compute=options.v_compute,
                                 v_user=options.v_user,
                                 v_pass=options.v_pass,
                                 v_template=options.v_template)
