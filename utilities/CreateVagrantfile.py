@@ -66,6 +66,12 @@ def parse_options():
     group_vsphere.add_option('-t', '--template', action='store',
                              type='string', dest='v_template', default='',
                              help='[Mandatory] vSphere template path')
+    group_vsphere.add_option('-r', '--resourcepool', action='store',
+                             type='string', dest='v_resource_pool', default='',
+                             help='[Mandatory] Target resource pool path')
+    group_vsphere.add_option('', '--outfolder', action='store',
+                             type='string', dest='v_output_folder', default='',
+                             help='[Mandatory] Target folder to put computes')
     parser.add_option_group(group_vsphere)
 
     (options, args) = parser.parse_args()
@@ -97,6 +103,12 @@ def write_vagrantfile():
     if not options.v_template:
         print 'Template file (-t) is missing'
         is_legal = False
+    if not options.v_resource_pool:
+        print 'Target resource pool (-r) is missing'
+        is_legal = False
+    if not options.v_output_folder:
+        print 'Target folder (--outfolder) is missing'
+        is_legal = False
     if not is_legal:
         print 'Fail to write Vagrantfile!'
         exit(-1)
@@ -110,7 +122,9 @@ def write_vagrantfile():
                                 v_compute=options.v_compute,
                                 v_user=options.v_user,
                                 v_pass=options.v_pass,
-                                v_template=options.v_template)
+                                v_template=options.v_template,
+                                v_resource_pool=options.v_resource_pool,
+                                v_output_folder=options.v_output_folder)
     with open(options.output, "w") as fp:
         fp.write(inventory)
 

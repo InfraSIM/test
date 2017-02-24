@@ -23,9 +23,9 @@ Vagrant.configure("2") do |config|
       vsphere.host = '{{v_host}}'
       vsphere.data_center_name = '{{v_datacenter}}'
       vsphere.compute_resource_name = '{{v_compute}}'
-      vsphere.resource_pool_name = 'vagrant'
-      vsphere.template_name = '/Discovered virtual machine/{{v_template}}'
-      vsphere.vm_base_path = 'vagrant-machines'
+      vsphere.resource_pool_name = '{{v_resource_pool}}'
+      vsphere.template_name = '{{v_template}}'
+      vsphere.vm_base_path = '{{v_output_folder}}'
       vsphere.user = '{{v_user}}'
       vsphere.password = '{{v_pass}}'
       vsphere.insecure = true
