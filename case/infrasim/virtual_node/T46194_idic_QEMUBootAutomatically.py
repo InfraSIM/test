@@ -23,14 +23,12 @@ class T46194_idic_QEMUBootAutomatically(CBaseCase):
                          format(obj_node.get_name(), obj_rack.get_name()))
 
                 node_ssh = obj_node.ssh
-                str_rsp = node_ssh.send_command_wait_string(str_command='ps ax | grep "qemu-system-x86_64"'+chr(13),
-                                                            wait='$',
-                                                            int_time_out=10,
-                                                            b_with_buff=False)
 
-                self.log('INFO', 'rsp: \n{}'.format(str_rsp))
+                rst_dict = node_ssh.remote_shell("ps ax | grep \"qemu-system-x86_64\"")
 
-                if re.search("qemu-system-x86_64", str_rsp) is not None:
+                self.log('INFO', 'rsp: \n{}'.format(rst_dict["stdout"]))
+
+                if re.search("qemu-system-x86_64 .*-name", rst_dict["stdout"]) is not None:
                     self.log('INFO', 'Process of QEMU is boot automatically.')
                 else:
                     self.result(FAIL, 'Failed to automatically boot process of QEMU.')
