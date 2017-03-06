@@ -92,7 +92,8 @@ class T73325_idic_StressPowerControl(CBaseCase):
                 return False
 
             # Remote shell "ps" and check process status
-            obj_node.get_bmc().ssh.connect()
+            if not obj_node.get_bmc().ssh.connect():
+                raise Exception("BLOCK", "Cannot ssh to BMC on node {}".format(obj_node.get_name()))
             rsp = obj_node.get_bmc().ssh.remote_shell('ps')
             if rsp['exitcode'] != 0:
                 self.result(FAIL, '[{}/{}] Node {} fail to response remote shell command, response: \n{}'.

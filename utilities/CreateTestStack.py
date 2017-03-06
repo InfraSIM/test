@@ -226,6 +226,55 @@ def start_node():
                 raise Exception("ipmi-console on {} fail to start".format(host))
 
 
+def validate_ipmiconsole_access():
+    global hosts
+
+    for node_type in hosts:
+        for host in hosts[node_type]:
+            cmd = "ansible {} -i {} -m shell -a \"netstat -anp | grep 9300\"".format(node_type, inventory_path)
+            while True:
+                try:
+                    run_command(cmd)
+                    break
+                except Exception as e:
+                    time.sleep(0.5)    
+            try:
+                client = paramiko.SSHClient()
+                client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+                client.connect(host, username="", password="", port=9300)
+
+            except paramiko.AuthenticationException:
+                print 'SSH authentication error, please check username and password'
+                return False
+            except paramiko.SSHException:
+                print 'Error happen in SSH connect: \n{}'.format(traceback.format_exc())
+                return False
+            except socket.error:
+                print 'WARNING', 'Socket error while connection: \n{}'.format(traceback.format_exc())
+                return False
+            except Exception:
+                print 'WARNING', 'Fail to build SSH connection: \n{}'.format(traceback.format_exc())
+                return False
+            else:
+                print "SSH to {} -p 9300 is validated".format(host)
+
+            try:
+                v_shell = client.invoke_shell()
+                v_shell.send('help\n')
+                time.sleep(1)
+                str_output= ''.join(v_shell.recv(2048))
+                if "quit/exit" not in str_output:
+                    print "WARNING", "Fail to get correct output from ipmi-console"
+                    return False
+
+            except paramiko.SSHException:
+                print 'SSH exception when execute command on remote shell: {}'.format(cmd)
+            finally:
+                client.close()
+
+    return True
+
+
 def validate_bmc_access():
     global host_to_bmc
 
@@ -288,7 +337,8 @@ if __name__ == "__main__":
 
     print '-'*40
     print '[Validate SSH connection]'
-    validate_admin_access()
+    if not validate_admin_access():
+        sys.exit(1)
 
     print '-'*40
     print '[Stop running instances]'
@@ -303,6 +353,11 @@ if __name__ == "__main__":
     start_node()
 
     time.sleep(2)
+
+    print '-'*40
+    print '[Validate ipmi-console access]'
+    if not validate_ipmiconsole_access():
+        sys.exit(1)
 
     print '-'*40
     print '[Validate BMC access]'

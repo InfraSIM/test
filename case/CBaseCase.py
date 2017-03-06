@@ -720,7 +720,8 @@ class CBaseCase(CLogger):
 
         self.log('INFO', 'Connect SSH ...')
         if not self.monorail.obj_ssh_agent.is_connected():
-            self.monorail.obj_ssh_agent.connect()
+            if not self.monorail.obj_ssh_agent.connect():
+                raise Exception("BLOCK", "Cannot ssh to ssh agent {}".format(self.monorail.obj_ssh_agent.ip))
         self.monorail.obj_ssh_agent.send_command_wait_string(chr(13), '$', b_with_buff=False)
 
         return True
@@ -849,7 +850,8 @@ class CBaseCase(CLogger):
         obj_ssh.set_raw_log_file(str_ipmi_sim_ssh_log)
         obj_ssh.set_log(1, True)
         if not obj_ssh.is_connected():
-            obj_ssh.connect()
+            if not obj_ssh.connect():
+                raise Exception("BLOCK", "Cannot access to ipmi-console on node {}".format(obj_node.get_ip()))
         obj_ssh.send_command_wait_string(chr(13), 'IPMI_SIM>', b_with_buff=False)
 
         return
@@ -907,7 +909,8 @@ class CBaseCase(CLogger):
         obj_ssh.set_raw_log_file(str_ssh_log)
         obj_ssh.set_log(1, True)
         if not obj_ssh.is_connected():
-            obj_ssh.connect()
+            if not obj_ssh.connect():
+                raise Exception("BLOCK", "Cannot ssh to device {}".format(obj_device.get_ip()))
         obj_ssh.send_command_wait_string(chr(13), str_prompt, b_with_buff=False)
 
         return
@@ -943,7 +946,8 @@ class CBaseCase(CLogger):
         obj_ssh.set_raw_log_file(str_vpdu_ssh_log)
         obj_ssh.set_log(1, True)
         if not obj_ssh.is_connected():
-            obj_ssh.connect()
+            if not obj_ssh.connect():
+                raise Exception("BLOCK", "Cannot ssh to PDU host {}".format(obj_pdu.get_ip()))
         obj_ssh.send_command_wait_string(str_command='help' + chr(13),
                                          wait='[CONFIG] [HELP] [IP] [MAP] [PASS] [PASSWORD] [SAVE] [VPDU] \r\n(vPDU)',
                                          int_time_out=10,

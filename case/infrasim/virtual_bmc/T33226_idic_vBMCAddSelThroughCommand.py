@@ -51,7 +51,7 @@ class T33226_idic_vBMCAddSelThroughCommand(CBaseCase):
 
                 else:
 
-                    event_id = 6
+                    event_id = 1
 
                     # Get sel by using IPMI_SIM
                     ipmi_console = obj_node.ssh_ipmi_console
@@ -88,14 +88,17 @@ class T33226_idic_vBMCAddSelThroughCommand(CBaseCase):
                                     format(obj_node.get_name(), obj_rack.get_name(), ret, rsp))
 
                     else:
-                        is_match = re.search("Pre-Init", rsp)
+                        assert_sel = re.search(".*{}| Lower Non-critical going high | Asserted".
+                                               format(sensor_id), rsp)
+                        deassert_sel = re.search(".*{}| Lower Non-critical going high | Deasserted".
+                                                 format(sensor_id), rsp)
 
-                        if is_match is not None:
+                        if assert_sel and deassert_sel:
                             self.log('INFO', 'Get sel from vBMC: {}'.format(rsp))
 
                         else:
                             # Failed to add sel through command
-                            self.result(FAIL, 'Nothing from vBMC. Node is {}, ipmi-console access: {}:{}'.
+                            self.result(FAIL, 'Failed to add SEL to vBMC. Node is {}, ipmi-console access: {}:{}'.
                                         format(obj_node.get_name(),
                                                obj_node.get_ip(),
                                                obj_node.get_port_ipmi_console()))
