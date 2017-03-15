@@ -101,8 +101,9 @@ def scan_inventory(path):
 def validate_admin_access():
     global hosts
     global host_to_bmc
+    global ssh_password
 
-    cmd = "ifconfig ens192 | awk '/inet addr/{print substr($2,6)}'"
+    bmc_cmd = "ifconfig ens192 | awk '/inet addr/{print substr($2,6)}'"
 
     for node_type in hosts:
         for host in hosts[node_type]:
@@ -126,9 +127,37 @@ def validate_admin_access():
             else:
                 print "SSH to {} is validated".format(host)
 
-
             try:
-                stdin, stdout, stderr = client.exec_command(cmd)
+                # bring all net dev up if they are not
+                stdin, stdout, stderr = client.exec_command("ifquery -l")
+                while not stdout.channel.exit_status_ready():
+                    pass
+                str_stdout = ''.join(stdout.readlines())
+                str_stderr = stderr.channel.recv_stderr(4096)
+                int_exitcode = stdout.channel.recv_exit_status()
+                if int_exitcode != 0:
+                    raise Exception("Fail to query interfaces list", str_stderr)
+                intf_list = str_stdout.split()
+                for intf in intf_list:
+                    stdin, stdout, stderr = client.exec_command("ifconfig {}".format(intf))
+                    while not stdout.channel.exit_status_ready():
+                        pass
+                    str_stdout = ''.join(stdout.readlines())
+                    str_stderr = stderr.channel.recv_stderr(4096)
+                    int_exitcode = stdout.channel.recv_exit_status()
+                    if int_exitcode != 0:
+                        print 'INFO', '{} is not up, trying to bring it up...'.format(intf)
+                        stdin, stdout, stderr = client.exec_command("echo {} | sudo -S ifup {}".format(ssh_password, intf))
+                        while not stdout.channel.exit_status_ready():
+                            pass
+                        str_stdout = ''.join(stdout.readlines())
+                        str_stderr = stderr.channel.recv_stderr(4096)
+                        int_exitcode = stdout.channel.recv_exit_status()
+                        if int_exitcode != 0:
+                            raise Exception("Fail to ifup {}".format(intf))
+
+                # fetch bmc interface ip
+                stdin, stdout, stderr = client.exec_command(bmc_cmd)
                 while not stdout.channel.exit_status_ready():
                     pass
                 str_stdout = ''.join(stdout.readlines())
@@ -140,7 +169,7 @@ def validate_admin_access():
                 else:
                     host_to_bmc[host] = str_stdout.strip()
             except paramiko.SSHException:
-                print 'SSH exception when execute command on remote shell: {}'.format(cmd)
+                print 'SSH exception when execute command on remote shell: {}'.format(bmc_cmd)
             finally:
                 client.close()
 
@@ -151,9 +180,10 @@ def clear_node():
     global full_group
     global inventory_path
     global hosts
-    cmd = "ansible {} -i {} -m shell -a \"echo infrasim | " \
+    global ssh_password
+    cmd = "ansible {} -i {} -m shell -a \"echo {} | " \
           "sudo -S ipmi-console stop\"".\
-        format(full_group, inventory_path)
+        format(full_group, inventory_path, ssh_password)
     _, rsp = run_command(cmd)
     print rsp
     # Verify operations on all nodes are successful
@@ -164,9 +194,9 @@ def clear_node():
             else:
                 raise Exception("ipmi-console on {} fail to stop".format(host))
 
-    cmd = "ansible {} -i {} -m shell -a \"echo infrasim | " \
+    cmd = "ansible {} -i {} -m shell -a \"echo {} | " \
           "sudo -S infrasim node stop\"".\
-        format(full_group, inventory_path)
+        format(full_group, inventory_path, ssh_password)
     _, rsp = run_command(cmd)
     print rsp
     # Verify operations on all nodes are successful
@@ -181,10 +211,11 @@ def clear_node():
 def update_node_type():
     global inventory_path
     global hosts
+    global ssh_password
     for node_type in hosts:
-        cmd = "ansible {0} -i {1} -b -m shell -a \"echo infrasim | " \
+        cmd = "ansible {0} -i {1} -b -m shell -a \"echo {2} | " \
               "sudo -S sed -i 's/^\(type: \).*/\\1{0}/' ~/.infrasim/.node_map/default.yml\"".\
-            format(node_type, inventory_path)
+            format(node_type, inventory_path, ssh_password)
         _, rsp = run_command(cmd)
         print rsp
         for host in hosts[node_type]:
@@ -198,10 +229,11 @@ def start_node():
     global full_group
     global inventory_path
     global hosts
+    global ssh_password
 
-    cmd = "ansible {} -i {} -m shell -a \"echo infrasim | " \
+    cmd = "ansible {} -i {} -m shell -a \"echo {} | " \
           "setsid sudo -S infrasim node start\"".\
-        format(full_group, inventory_path)
+        format(full_group, inventory_path, ssh_password)
     _, rsp = run_command(cmd)
     print rsp
     # Verify operations on all nodes are successful
@@ -212,9 +244,9 @@ def start_node():
             else:
                 raise Exception("infrasim node instance on {} fail to start".format(host))
 
-    cmd = "ansible {} -i {} -m shell -a \"echo infrasim | " \
+    cmd = "ansible {} -i {} -m shell -a \"echo {} | " \
           "setsid sudo -S ipmi-console start\"".\
-        format(full_group, inventory_path)
+        format(full_group, inventory_path, ssh_password)
     _, rsp = run_command(cmd)
     print rsp
     # Verify operations on all nodes are successful
