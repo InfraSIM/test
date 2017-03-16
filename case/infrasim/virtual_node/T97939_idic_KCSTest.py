@@ -48,11 +48,9 @@ class T97939_idic_KCSTest(CBaseCase):
         str_node_name = node.get_instance_name()
         payload = [
             {
-                "controller": {
-                    "type": "ahci",
-                    "max_drive_per_controller": 6,
-                    "drives": [{"size": 8, "file": dst_path}]
-                }
+                "type": "ahci",
+                "max_drive_per_controller": 6,
+                "drives": [{"size": 8, "file": dst_path}]
             }
         ]
         node.update_instance_config(str_node_name, payload, "compute", "storage_backend")
