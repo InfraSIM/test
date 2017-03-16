@@ -206,8 +206,11 @@ class CNode(CDevice):
                                                 wait='~$')
 
         list_name = list(set(p_name.findall(rsp)))
-        if len(list_name) == 1:
+        active_num = len(list_name)
+        if active_num == 1:
             return list_name[0]
+        elif active_num == 0:
+            raise Exception("Infrasim node is not running on {}".format(self.ip))
         else:
             raise Exception("Multiple infrasim instances {} are detected on {}. "
                             "This is not supported yet.".
