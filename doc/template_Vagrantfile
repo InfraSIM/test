@@ -1,14 +1,12 @@
 # -*- mode: ruby -*-
 # vi: set ft=ruby :
 $script = <<SCRIPT
-cd /vagrant
-sudo ifconfig ens160 | awk '/inet addr/{print substr($2,6)}' > ip.txt
-sudo cat ip.txt
+echo `ifconfig ens160 | awk '/inet addr/{print substr($2,6)}'`
 SCRIPT
 
 NODE_COUNT = {{node_count}}
 Vagrant.configure("2") do |config|
-  (1...NODE_COUNT).each do |i|
+  (1..NODE_COUNT).each do |i|
     config.vm.define "vagrant#{i}" do |subconfig|
       subconfig.vm.box = "InfraSIM/infrasim-compute"
       subconfig.vm.hostname = "vagrant#{i}"

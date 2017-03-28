@@ -176,6 +176,22 @@ def validate_admin_access():
     return True
 
 
+def solve_arp_flux():
+    global full_group
+    global inventory_path
+    global ssh_password
+    dl_cmd = "ansible {} -i {} -m shell -a \"wget " \
+          "https://raw.githubusercontent.com/InfraSIM/tools/master/diag_arp_flux/diag_arp_flux.py\"".\
+        format(full_group, inventory_path, ssh_password)
+    run_command(dl_cmd)
+    install_cmd = "ansible {} -i {} -m shell -a \"echo {} | sudo -S pip install netifaces\"".\
+        format(full_group, inventory_path, ssh_password)
+    run_command(install_cmd)
+    route_cmd = "ansible {} -i {} -m shell -a \"echo {} | sudo -S python diag_arp_flux.py\"".\
+        format(full_group, inventory_path, ssh_password)
+    run_command(route_cmd)
+
+
 def clear_node():
     global full_group
     global inventory_path
@@ -269,7 +285,7 @@ def validate_ipmiconsole_access():
                     run_command(cmd)
                     break
                 except Exception as e:
-                    time.sleep(0.5)    
+                    time.sleep(0.5)
             try:
                 client = paramiko.SSHClient()
                 client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
@@ -308,7 +324,19 @@ def validate_ipmiconsole_access():
 
 
 def validate_bmc_access():
+    global hosts
     global host_to_bmc
+    global inventory_path
+
+    for node_type in hosts:
+        for host in hosts[node_type]:
+            cmd = "ansible {} -i {} -m shell -a \"netstat -anp | grep 623\"".format(node_type, inventory_path)
+            while True:
+                try:
+                    run_command(cmd)
+                    break
+                except Exception as e:
+                    time.sleep(0.5)
 
     for host, bmc in host_to_bmc.items():
         run_command('ipmitool -I lanplus -U admin -P admin -H {} user list'.format(bmc))
@@ -375,6 +403,10 @@ if __name__ == "__main__":
     print '-'*40
     print '[Stop running instances]'
     clear_node()
+
+    print '-'*40
+    print '[Solve arp flux]'
+    solve_arp_flux()
 
     print '-'*40
     print '[Update node type in yml]'
