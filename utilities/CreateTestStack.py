@@ -274,13 +274,33 @@ def start_node():
                 raise Exception("ipmi-console on {} fail to start".format(host))
 
 
+def validate_service_status():
+    global hosts
+    global ssh_password
+    global inventory_path
+    for node_type in hosts:
+        for host in hosts[node_type]:
+            cmd_infrasim = "ansible {} -i {} -m shell -a \"echo {} | sudo -S infrasim node status\"".\
+                    format(node_type, inventory_path, ssh_password)
+            _, rsp = run_command(cmd_infrasim)
+            print rsp
+            if "is stopped" in rsp:
+                raise Exception("infrasim service is not running on {}".format(host))
+            cmd_console = "ansible {} -i {} -m shell -a \"ps ax | grep ipmi-console\"".\
+                    format(node_type, inventory_path)
+            _, rsp = run_command(cmd_console)
+            print rsp
+            if "ipmi-console start" not in rsp:
+                raise Exception("ipmi-console is not running on {}".format(host))
+
+
 def validate_ipmiconsole_access():
     global hosts
 
     for node_type in hosts:
         for host in hosts[node_type]:
             cmd = "ansible {} -i {} -m shell -a \"netstat -anp | grep 9300\"".format(node_type, inventory_path)
-            while True:
+            for i in range(60):
                 try:
                     run_command(cmd)
                     break
@@ -331,7 +351,7 @@ def validate_bmc_access():
     for node_type in hosts:
         for host in hosts[node_type]:
             cmd = "ansible {} -i {} -m shell -a \"netstat -anp | grep 623\"".format(node_type, inventory_path)
-            while True:
+            for i in range(60):
                 try:
                     run_command(cmd)
                     break
@@ -417,6 +437,10 @@ if __name__ == "__main__":
     start_node()
 
     time.sleep(2)
+
+    print '-'*40
+    print '[Validate infrasim service status]'
+    validate_service_status()
 
     print '-'*40
     print '[Validate ipmi-console access]'
