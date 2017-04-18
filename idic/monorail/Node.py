@@ -155,7 +155,7 @@ class CNode(CDevice):
         """
         self.log('INFO', 'Delete node {} ...'.format(self.resource_name))
         rsp = self.rest_delete(self.uri)
-        if rsp.get('status', None) != 200:
+        if rsp.get('status', None) != 204:
             raise Exception('Delete node fail, http status: {}, response: {}'.
                             format(rsp.get('status', None), rsp.get('text', '')))
         else:

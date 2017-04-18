@@ -36,12 +36,12 @@ class T0000_rackhd_OSInstall(CBaseCase):
         if "/ifs/share/infrastructure/nfs-maglev-image/html/static/mirrors" not in rsp["stdout"]:
             self.log("WARNING", "No OS mirror is found in RackHD environment. Going to mount...")
             ssh.remote_shell("echo {} | sudo -S mkdir "
-                             "-p /var/renasar/on-http/static/http".
+                             "-p /opt/monorail/static/http".
                              format(self.monorail.password))
             rsp = ssh.remote_shell("echo {} | sudo -S mount -t nfs "
                                    "-o rw,rsize=8192,wsize=8192,timeo=14,intr "
                                    "192.168.127.32:/ifs/share/infrastructure/nfs-maglev-image/html/static/mirrors "
-                                   "/var/renasar/on-http/static/http".
+                                   "/opt/monorail/static/http".
                                    format(self.monorail.password))
             if "mount: wrong fs type" in rsp["stderr"]:
                 self.result(BLOCK, "Please install nfs-common in RackHD environment, then run this test again:\n"
@@ -51,6 +51,12 @@ class T0000_rackhd_OSInstall(CBaseCase):
                                    "\n"
                                    "{}".format(sources_list))
                 return
+            if "mount.nfs: access denied by server" in rsp["stderr"]:
+                self.result(BLOCK, "Please install cifs-utils in RackHD environment, then "
+                                   "mount the share folder with cifs protocol")
+                return
+            if "mount.nfs: Connection timed out" in rsp["stderr"]:
+                self.result(BLOCK, "Server is inaccessible, please find another mirror server to mount.")
 
         # Check if any node has any active workflows
         for node_id, node in self.monorail.get_nodes("compute").items():

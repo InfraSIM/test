@@ -2,9 +2,9 @@
     "platform": "RackHD",
     "rest_rev": "2.0",
     "rest_protocol": "https",
-    "rest_port": 443,
-    "username": "onrack",
-    "password": "onrack",
+    "rest_port": 8443,
+    "username": "vagrant",
+    "password": "vagrant",
     "rest_username": "admin",
     "rest_password": "admin123"
 }
