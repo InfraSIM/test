@@ -1,0 +1,10 @@
+[
+    {
+        "DHCP_SERVER":"192.168.128.4",
+        "DHCP_USERNAME":"root",
+        "DHCP_PASSWORD":"cisolution",
+        "disk_image": "esxi6p3-1.qcow2",
+        "host_username": "root",
+        "host_password": "Passw0rd!"
+    }
+]

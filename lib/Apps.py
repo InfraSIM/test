@@ -645,7 +645,7 @@ def has_option(config, *args):
             iter(section)
         except TypeError:
             return False
-        if option in section:
+        if option in section or isinstance(option, int):
             section = section[option]
         else:
             return False
