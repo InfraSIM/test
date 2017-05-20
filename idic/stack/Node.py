@@ -225,7 +225,10 @@ class CNode(CDevice):
         :return:
         '''
         self.log("INFO", "Update config for instance {} on node {}...".format(str_instance_name, self.get_ip()))
-        self.log("INFO", "{}: \n{}".format(" > ".join(key), json.dumps(payload, indent=4)))
+        str_key = []
+        for element in key:
+            str_key.append(str(element))
+        self.log("INFO", "{}: \n{}".format(" > ".join(str_key), json.dumps(payload, indent=4)))
         remote_path = os.path.join(".infrasim", str_instance_name, "etc", "infrasim.yml")
         with self.ssh.h_ssh.open_sftp() as sftp:
             conf = None
