@@ -113,7 +113,7 @@ class T130052_idic_ESXiTest(CBaseCase):
                                               wait="Password")
         node.ssh.send_command_wait_string(str_command=self.data['host_password']+chr(13),
                                           wait=PROMPT_GUEST)
-
+        time.sleep(2)
         self.esx_test_ipmi_fru(node)
         self.esx_test_storage_device(node)
 
