@@ -393,7 +393,8 @@ class CMonorail(CDevice):
         """
         This routine will login RackHD to get a token.
         """
-        login_url = "{0}://{1}:{2}/login".format(self.str_mon_protocol,
+
+	login_url = "{0}://{1}:{2}/login".format(self.str_mon_protocol,
                                                  self.ip,
                                                  self.str_mon_port)
         login_payload = {"username": self.rest_username, "password": self.rest_password}
@@ -404,8 +405,20 @@ class CMonorail(CDevice):
         finally:
             self.obj_rest_agent.enable_log()
 
+        firstlogin_payload = {"username": self.rest_username, "role":"Administrator","password": self.rest_password}
+        register_url = "{0}://{1}:{2}/api/{3}/users".format(self.str_mon_protocol,self.ip,self.str_mon_port,self.str_mon_rev )
+       
+	if login_resp["status"] != 200:
+	    self.obj_rest_agent.disable_log()
+            self.log('INFO', 'Rigester a new account')
+            register_resp = self.obj_rest_agent.restful(str(register_url), 'post',rest_payload=firstlogin_payload)	
+            if register_resp["status"] != 201:
+                self.log('WARNING', 'Fail to register to rackhd')
+            login_resp = self.obj_rest_agent.restful(str(login_url), 'post', rest_payload=login_payload)
+
         if login_resp["status"] != 200:
             self.log('WARNING', 'Fail to get OnRack authentication token')
         else:
             token = login_resp['json']['token']
         return str(token)
+
