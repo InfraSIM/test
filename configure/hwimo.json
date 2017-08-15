@@ -5,6 +5,6 @@
     "rest_port": 8443,
     "username": "vagrant",
     "password": "vagrant",
-    "rest_username": "admin111",
-    "rest_password": "admin111"
+    "rest_username": "admin",
+    "rest_password": "admin123"
 }
