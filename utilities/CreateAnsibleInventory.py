@@ -26,7 +26,7 @@ node_type = [
 ]
 
 p_admin_ip = r"==> vagrant\d*: (?P<ip>\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})"
-p_admin_docker_ip = r"==> container\d*: (?P<ip>\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})"
+p_admin_docker_ip = r"==> container_\d*: (?P<ip>\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})"
 
 
 # Find template from test/doc/template_ansible_inventory
