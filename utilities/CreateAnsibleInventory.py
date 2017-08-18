@@ -26,6 +26,7 @@ node_type = [
 ]
 
 p_admin_ip = r"==> vagrant\d*: (?P<ip>\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})"
+p_admin_docker_ip = r"==> container\d*: (?P<ip>\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})"
 
 
 # Find template from test/doc/template_ansible_inventory
@@ -39,6 +40,11 @@ def load_ip_pool(path):
     global p_admin_ip
     with open(path, 'r') as fp:
         text = fp.read()
+
+    if re.search(r'docker\.log$',path):
+        p_admin_ip = p_admin_docker_ip
+    else:
+        p_admin_ip = p_admin_vagrant_ip
     r = re.compile(p_admin_ip)
     list_ip_pool = r.findall(text)
 
