@@ -25,7 +25,7 @@ node_type = [
     "dell_c6320"
 ]
 
-p_admin_ip = r"==> vagrant\d*: (?P<ip>\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})"
+p_admin_vagrant_ip = r"==> vagrant\d*: (?P<ip>\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})"
 p_admin_docker_ip = r"==> container_\d*: (?P<ip>\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})"
 
 
