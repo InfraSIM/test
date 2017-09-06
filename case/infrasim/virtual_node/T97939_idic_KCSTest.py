@@ -22,7 +22,7 @@ class T97939_idic_KCSTest(CBaseCase):
         CBaseCase.config(self)
         self.enable_node_ssh()
 
-        MD5_KCS_IMG = "cfdf7d855d2f69c67c6e16cc9b53f0da"
+        MD5_KCS_IMG = "986e5e63e8231a307babfbe9c81ca210"
         if not os.path.exists("image/kcs.img"):
             self.log('INFO', "No kcs.img for test, download now...")
             urllib.urlretrieve("https://github.com/InfraSIM/test/raw/master/image/kcs.img", "image/kcs.img")

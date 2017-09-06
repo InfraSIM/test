@@ -33,6 +33,7 @@ class T130052_idic_ESXiTest(CBaseCase):
 
     def boot_to_disk(self, node):
         dst_path = node.send_file(os.environ["HOME"]+"/images/esxi6p3-1.qcow2", "/tmp/esxi6p3-1.qcow2")
+
         str_node_name = node.get_instance_name()
 
         payload = [
@@ -60,7 +61,9 @@ class T130052_idic_ESXiTest(CBaseCase):
         }
         node.update_instance_config(str_node_name, payload, "compute", "cpu")
         
-        node.update_instance_config(str_node_name, "true", "compute", "kvm_enabled")
+        # Running ESXi really requires KVM to be present, using default value without specifying it
+        # node.update_instance_config(str_node_name, "true", "compute", "kvm_enabled")
+
         node.update_instance_config(str_node_name, "e1000", "compute", "networks", 0, "device")
         node.update_instance_config(str_node_name, "bridge", "compute", "networks", 0, "network_mode")
         node.update_instance_config(str_node_name, "br0", "compute", "networks", 0, "network_name")
@@ -85,6 +88,7 @@ class T130052_idic_ESXiTest(CBaseCase):
         qemu_config = node.get_instance_config(str_node_name)
         qemu_first_mac = qemu_config["compute"]["networks"][0]["mac"].lower()
         # Get qemu IP
+        
         rsp = node.ssh.send_command_wait_string(str_command=r"arp -e | grep {} | awk '{{print $1}}'".
                                                 format(qemu_first_mac)+chr(13),
                                                 wait="~$")

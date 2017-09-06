@@ -960,8 +960,8 @@ class CBaseCase(CLogger):
         self.log('INFO', 'Deconfig stack ...')
 
         self.log('INFO', 'Deconfig vRackSystem REST agent ...'.format())
-        self.stack.rest.reset()
 
+        # Node need to be deconfigured completely anyway
         gevent.joinall([gevent.spawn(self.deconfig_node, obj_node)
                         for obj_node in self.stack.walk_node()])
 
@@ -993,16 +993,17 @@ class CBaseCase(CLogger):
         obj_ssh_ipmi_console.reset()
         obj_ssh_ipmi_console.set_logger(None)
 
-        # Deconfig BMC SSH shell
-        obj_bmc_ssh = obj_node.get_bmc().ssh
-        obj_bmc_ssh.disconnect()
-        obj_bmc_ssh.reset()
-        obj_bmc_ssh.set_logger(None)
-
         # Deconfig BMC IOL session
         obj_bmc_iol = obj_node.get_bmc().ipmi
         obj_bmc_iol.reset()
         obj_bmc_iol.set_logger(None)
+
+        # Deconfig Node SSH, log, etc
+        obj_node_ssh = obj_node.ssh
+        obj_node_ssh.disconnect()
+        obj_node_ssh.reset()
+        obj_node_ssh.set_logger(None)
+
 
     def deconfig_pdu(self, obj_pdu):
         self.log('INFO', 'Deconfig PDU {} ...'.format(obj_pdu.get_name()))
