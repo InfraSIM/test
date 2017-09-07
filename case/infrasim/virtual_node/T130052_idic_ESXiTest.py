@@ -23,7 +23,7 @@ class T130052_idic_ESXiTest(CBaseCase):
     
     def test(self):
         gevent.joinall([gevent.spawn(self.boot_to_disk, obj_node)
-                        for obj_node in self.stack.walk_node()])
+                       for obj_node in self.stack.walk_node()])
         gevent.joinall([gevent.spawn(self.esxcli_test, obj_node)
                        for obj_node in self.stack.walk_node()])
 
@@ -32,8 +32,8 @@ class T130052_idic_ESXiTest(CBaseCase):
         CBaseCase.deconfig(self)
 
     def boot_to_disk(self, node):
-        dst_path = node.send_file(os.environ["HOME"]+"/images/esxi6p3-1.qcow2", "/tmp/esxi6p3-1.qcow2")
 
+        dst_path = node.send_file(os.environ["HOME"]+"/images/esxi6p3-1.qcow2", "/tmp/esxi6p3-1.qcow2")
         str_node_name = node.get_instance_name()
 
         payload = [
@@ -103,23 +103,33 @@ class T130052_idic_ESXiTest(CBaseCase):
                 return
             else:
                 self.log("INFO", "Guest IP is {} on node {}".format(qemu_first_ip, node.get_name()))
-        # SSH to guest
-        node.ssh.send_command_wait_string(str_command="ssh {}@{}".format(self.data['host_username'], qemu_first_ip)+chr(13),
-                                          wait=["(yes/no)", "Password"])
-        match_index = node.ssh.get_match_index()
+
+        # SSH to guest, retry for 30 times
+        times = 30
+        time.sleep(30)
+        for i in range(times):
+            node.ssh.send_command_wait_string(str_command="ssh {}@{}".format(self.data['host_username'],
+                 qemu_first_ip)+chr(13), int_time_out = 2, wait=["(yes/no)", "Password"])
+            match_index = node.ssh.get_match_index()
+            if match_index == 0:
+                time.sleep(20)
+                continue
+            elif match_index == 1:
+                node.ssh.send_command_wait_string(str_command=self.data['host_password']+chr(13),
+                                                  wait=PROMPT_GUEST)
+                break
+            elif match_index ==2:
+                node.ssh.send_command_wait_string(str_command="yes"+chr(13),
+                                                  wait="Password")
+                node.ssh.send_command_wait_string(str_command=self.data['host_password']+chr(13),
+                                                  wait=PROMPT_GUEST)
+                break
+
         if match_index == 0:
-            self.result(BLOCK, "Fail to ssh to guest on {} {}".
-                        format(node.get_name(), node.get_ip()))
-            return
-      
-        elif match_index == 1:
-            node.ssh.send_command_wait_string(str_command="yes"+chr(13),
-                                              wait="Password")
-        node.ssh.send_command_wait_string(str_command=self.data['host_password']+chr(13),
-                                          wait=PROMPT_GUEST)
-        time.sleep(2)
-        self.esx_test_ipmi_fru(node)
-        self.esx_test_storage_device(node)
+            self.result(BLOCK, "Tried ssh to guest on {} for {} times already, but still failed.".format(node.get_name(), times))
+        else:
+            self.esx_test_ipmi_fru(node)
+            self.esx_test_storage_device(node)
 
 
     def esx_test_ipmi_fru(self, node):
