@@ -959,8 +959,6 @@ class CBaseCase(CLogger):
 
         self.log('INFO', 'Deconfig stack ...')
 
-        self.log('INFO', 'Deconfig vRackSystem REST agent ...'.format())
-
         # Node need to be deconfigured completely anyway
         gevent.joinall([gevent.spawn(self.deconfig_node, obj_node)
                         for obj_node in self.stack.walk_node()])
