@@ -1,5 +1,5 @@
 from case.CBaseCase import *
-from lib.Apps import dhcp_query_ip
+from lib.Apps import dhcp_query_ip, md5
 import gevent
 
 PROMPT_GUEST = "root@localhost"
@@ -32,8 +32,12 @@ class T130052_idic_ESXiTest(CBaseCase):
         CBaseCase.deconfig(self)
 
     def boot_to_disk(self, node):
+        # Delete existing image if any, it might lead issue with booting
+        print node.ssh.send_command_wait_string(str_command="echo infrasim | sudo -S rm -f /tmp/esxi6p3-1.qcow2"+chr(13), wait="~$")
 
         dst_path = node.send_file(os.environ["HOME"]+"/images/esxi6p3-1.qcow2", "/tmp/esxi6p3-1.qcow2")
+        #dst_path = "/tmp/esxi6p3-1.qcow2"
+
         str_node_name = node.get_instance_name()
 
         payload = [
@@ -101,29 +105,32 @@ class T130052_idic_ESXiTest(CBaseCase):
                 self.result(BLOCK, "Fail to get virtual compute IP address on {} {}".
                             format(node.get_name(), node.get_ip()))
                 return
-            else:
-                self.log("INFO", "Guest IP is {} on node {}".format(qemu_first_ip, node.get_name()))
+        self.log("INFO", "Guest IP is {} on node {}".format(qemu_first_ip, node.get_name()))
 
         # SSH to guest, retry for 30 times
         times = 30
         time.sleep(30)
         for i in range(times):
-            node.ssh.send_command_wait_string(str_command="ssh {}@{}".format(self.data['host_username'],
-                 qemu_first_ip)+chr(13), int_time_out = 2, wait=["(yes/no)", "Password"])
+            # Need to remove relative key to avoid key change alarm
+            node.ssh.send_command_wait_string(str_command="ssh-keygen -f /home/infrasim/.ssh/known_hosts -R {}".  \
+               format(qemu_first_ip)+chr(13), int_time_out = 10, wait="~$")
+
+            node.ssh.send_command_wait_string(str_command="ssh root@{}".format(qemu_first_ip)+chr(13), 
+                wait=["(yes/no)", "Password"])
+
             match_index = node.ssh.get_match_index()
+
             if match_index == 0:
                 time.sleep(20)
                 continue
+
             elif match_index == 1:
-                node.ssh.send_command_wait_string(str_command=self.data['host_password']+chr(13),
-                                                  wait=PROMPT_GUEST)
-                break
-            elif match_index ==2:
                 node.ssh.send_command_wait_string(str_command="yes"+chr(13),
                                                   wait="Password")
-                node.ssh.send_command_wait_string(str_command=self.data['host_password']+chr(13),
+
+            node.ssh.send_command_wait_string(str_command=self.data['host_password']+chr(13),
                                                   wait=PROMPT_GUEST)
-                break
+            break
 
         if match_index == 0:
             self.result(BLOCK, "Tried ssh to guest on {} for {} times already, but still failed.".format(node.get_name(), times))
