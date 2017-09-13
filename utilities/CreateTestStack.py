@@ -20,6 +20,7 @@ import socket
 import json
 import subprocess
 import time
+import re
 from ansible import inventory
 from ansible.vars import VariableManager
 from ansible.parsing.dataloader import DataLoader
@@ -401,6 +402,14 @@ def write_stack(path):
     with open(path, 'w') as fp:
         json.dump(stack, fp, indent=4)
 
+def stack_empty(path):
+    ip = r'(\d{1,3}.\d{1,3}.\d{1,3}.\d{1,3})'
+    r = re.compile(ip)
+    with open(path, 'r') as fp:
+        stack_content = fp.read()
+
+    return []== r.findall(stack_content)
+
 
 if __name__ == "__main__":
     if len(sys.argv) != 3:
@@ -458,3 +467,8 @@ if __name__ == "__main__":
     print '-'*40
     print '[Export stack description file to {}]'.format(stack_path)
     write_stack(stack_path)
+
+    print '_'*40
+    print '[Validate stack]'
+    if stack_empty(stack_path):
+        sys.exit(2)
