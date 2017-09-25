@@ -24,6 +24,7 @@ class T130052_idic_ESXiTest(CBaseCase):
     def test(self):
         gevent.joinall([gevent.spawn(self.boot_to_disk, obj_node)
                        for obj_node in self.stack.walk_node()])
+        time.sleep(10)
         gevent.joinall([gevent.spawn(self.esxcli_test, obj_node)
                        for obj_node in self.stack.walk_node()])
 
@@ -53,7 +54,10 @@ class T130052_idic_ESXiTest(CBaseCase):
             }
         ]
         node.update_instance_config(str_node_name, payload, "compute", "storage_backend")
-
+        payload = {
+                "boot_order": "cnd"
+        }
+        node.update_instance_config(str_node_name, payload, "compute", "boot")
         payload = {
                 "size":4096
         }
