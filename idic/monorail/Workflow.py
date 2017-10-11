@@ -60,7 +60,7 @@ class CWorkflow(CDevice):
         # mon_data analysis
         self.mon_data = self.rest_get(self.uri)
         self.id = self.get_mon('id')
-        self.status = self.get_mon('_status')
+        self.status = self.get_mon('status')
         self.cancelled = self.get_mon('cancelled')
         self.complete = self.get_mon('completeEventString')
         self.context = self.get_mon('context')
@@ -91,7 +91,7 @@ class CWorkflow(CDevice):
         self.log('INFO', 'Assigning workflow {} ...'.format(self.str_sub_type))
 
         self.id = dict_data.get('id', None)
-        self.status = dict_data.get('_status', None)
+        self.status = dict_data.get('status', None)
         self.cancelled = dict_data.get('cancelled', None)
         self.complete = dict_data.get('completeEventString', None)
         self.context = dict_data.get('context', None)
