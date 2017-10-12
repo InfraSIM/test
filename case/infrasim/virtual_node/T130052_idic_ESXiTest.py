@@ -24,7 +24,6 @@ class T130052_idic_ESXiTest(CBaseCase):
     def test(self):
         gevent.joinall([gevent.spawn(self.boot_to_disk, obj_node)
                        for obj_node in self.stack.walk_node()])
-        time.sleep(10)
         gevent.joinall([gevent.spawn(self.esxcli_test, obj_node)
                        for obj_node in self.stack.walk_node()])
 
@@ -39,7 +38,11 @@ class T130052_idic_ESXiTest(CBaseCase):
         dst_path = node.send_file(os.environ["HOME"]+"/images/esxi6p3-1.qcow2", "/tmp/esxi6p3-1.qcow2")
         #dst_path = "/tmp/esxi6p3-1.qcow2"
 
-        str_node_name = node.get_instance_name()
+        str_node_name = node.retry_get_instance_name()
+        if str_node_name == '':
+            self.result(BLOCK, "Failed to start infrasim instance on {}".
+                        format(node.get_ip()))
+            return
 
         payload = [
             {
@@ -72,7 +75,7 @@ class T130052_idic_ESXiTest(CBaseCase):
         # Running ESXi really requires KVM to be present, using default value without specifying it
         # node.update_instance_config(str_node_name, "true", "compute", "kvm_enabled")
 
-        node.update_instance_config(str_node_name, "e1000", "compute", "networks", 0, "device")
+        node.update_instance_config(str_node_name, "vmxnet3", "compute", "networks", 0, "device")
         node.update_instance_config(str_node_name, "bridge", "compute", "networks", 0, "network_mode")
         node.update_instance_config(str_node_name, "br0", "compute", "networks", 0, "network_name")
 
@@ -92,7 +95,11 @@ class T130052_idic_ESXiTest(CBaseCase):
             return
 
     def esxcli_test(self, node):
-        str_node_name = node.get_instance_name()
+        str_node_name = node.retry_get_instance_name()
+        if str_node_name == '':
+            self.result(BLOCK, "Failed to start infrasim instance {} on {}".
+                        format(str_node_name, node.get_ip()))
+            return
         qemu_config = node.get_instance_config(str_node_name)
         qemu_first_mac = qemu_config["compute"]["networks"][0]["mac"].lower()
         # Get qemu IP

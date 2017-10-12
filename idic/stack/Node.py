@@ -216,6 +216,22 @@ class CNode(CDevice):
                             "This is not supported yet.".
                             format(list_name, self.ip))
 
+    def retry_get_instance_name(self):
+        '''
+        Retry to get nodes name in case there is a node reboot before trying to get instance name
+        :return: 
+        '''
+        retry = 20
+        interval = 2
+        str_node_name = ""
+        for i in range(retry):
+            try:
+                str_node_name = self.get_instance_name()
+                break
+            except Exception as e:
+                time.sleep(interval)
+        return str_node_name
+
     @with_connect('ssh')
     def update_instance_config(self, str_instance_name, payload, *key):
         '''
