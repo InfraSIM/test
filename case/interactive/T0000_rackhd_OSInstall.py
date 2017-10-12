@@ -125,6 +125,8 @@ class T0000_rackhd_OSInstall(CBaseCase):
                     self.log('INFO', "InstanceId {} workflow completed".format(
                         workflow_instance_id))
                     break
+            # It's of too much load for RackHD to install os for 9 nodes together
+            time.sleep(120)
 
 
     def deconfig(self):
