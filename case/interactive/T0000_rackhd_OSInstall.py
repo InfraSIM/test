@@ -57,43 +57,62 @@ class T0000_rackhd_OSInstall(CBaseCase):
                                    "mount the share folder with cifs protocol")
                 return
             if "mount.nfs: Connection timed out" in rsp["stderr"]:
-                self.result(
-                    BLOCK, "Server is inaccessible, please find another mirror server to mount.")
-    def test(self):
+                self.result(BLOCK, "Server is inaccessible, please find another mirror server to mount.")
+                return
 
+    def test(self):
         # Check if any node has any active OS install workflows
         # If active workflow is for discovery, we will just wait
-        node_dic = {}
+        node_os_install_list = []
+        node_pend_on_discovery_list = []
+        node_fail_os_install_list = []
         interval = 6
         retry = 30
-        for node_id, node in self.monorail.get_nodes("compute").items():
-            node_dic[node_id] = node
-        for node_id, node in self.monorail.get_nodes("compute").items():
-            for i in range(retry):
+        nodes = self.monorail.get_nodes("compute").items()
+        node_os_install_list = self.monorail.get_nodes("compute").items()
+
+        for i in range(retry):
+            # if no nodes' has active workflow, break the 'for' loop
+            count = len(nodes)
+            for node_id, node in nodes:
+                rsp = node.get_workflows(active=True).items()
+                if len(rsp) == 0:
+                    count = count - 1
+            if count == 0:
+                self.log('INFO', "No active workflow on any node, ready for OS installation")
+                break
+            # if any node has active workflow,
+            # deal with workflow: cancel installation workflow + sleep for discovery workflow
+            sleep_f = False
+            for node_id, node in nodes:
                 rsp = node.get_workflows(active=True).items()
                 if len(rsp) != 0:
                     workflow_obj = rsp[0][1]
                     workflow_instance_id = workflow_obj.instanceId
                     self.log('INFO', "InstanceId {} workflow for {} is still active". format(
-                        workflow_instance_id, workflow_obj.injectableName))
+                             workflow_instance_id, workflow_obj.injectableName))
                     if "Install" in workflow_obj.injectableName:
                         workflow_obj.cancel()
+                        self.log('INFO', "InstanceId {} workflow is cancelled". format(
+                                 workflow_instance_id, workflow_obj.injectableName))
                     else:
                         if i == retry - 1:
-                            self.result(BLOCK, "There is {0} active workflow(s) on node {1}.\n"
-                                               "You may want to check it with: \n"
-                                               "    GET /workflows/{2}\n"
-                                               "or cancel it with: \n"
-                                               "    PUT /workflows/{2}/action".
-                                        format(len(rsp), node_id, workflow_instance_id))
-                            del node_dic[node_id]
-                        time.sleep(interval)
-                        continue
-                else:
-                    break
+                            self.log("WARNING", "There is {0} active workflow(s) on node {1}."
+                                                "Will not continue with OS installtion on this node\n".
+                                        format(len(rsp), node_id))
+                            node_info = (node_id, node)
+                            node_os_install_list.remove(node_info)
+                            node_pend_on_discovery_list.append(node_id)
+                        sleep_f = True
+
+        # Block test if no node ready for OS installation due to incomplete discovery workflow
+        if not node_os_install_list:
+            self.result(BLOCK, "All nodes are pending on discovery workflow."
+                        "Will not preceed with OS installation")
+            return
 
         # Start workflow to install OS
-        for node_id, node in node_dic.iteritems():
+        for node_id, node in node_os_install_list:
             # for node_id, node in self.monorail.get_nodes("compute").items():
             node_bmc_ip = node.get_bmc_ip()
             self.monorail.put_node_ipmi_obm(
@@ -101,33 +120,40 @@ class T0000_rackhd_OSInstall(CBaseCase):
             node.install_os(self.data["os_name"])
             self.log(
                 'WARNING', 'Installation on node {} starts, please open VNC to check'.format(node_id))
+            time.sleep(120)
 
-        # verify os install succeeded
-        for node_id, node in node_dic.iteritems():
-            rsp = node.get_workflows(active=True).items()
-            if len(rsp) != 0:
-                workflow_obj = rsp[0][1]
-                workflow_instance_id = workflow_obj.instanceId
-
+        # Verify os install succeeded
+        for i in range(retry):
             retry = 60
             interval = float(30)
-            for i in range(retry):
-                time.sleep(interval)
+            sleep_f = False
+            for node_id, node in node_os_install_list:
+                rsp = node.get_workflows(active=True).items()
+                if len(rsp) != 0:
+                    workflow_obj = rsp[0][1]
+                    workflow_instance_id = workflow_obj.instanceId
                 rsp = node.get_workflow_by_id(workflow_instance_id)
                 if rsp.status != "succeeded":
-                    if i == retry-1:
+                    if i == retry - 1:
                         time_in_min = float(retry * interval / 60)
-                        self.result(FAIL, "OS installation on node: {} didn't success after {} minutes.".format(
-                            node_id, time_in_min))
+                        node_fail_os_install_list.append(node_id)
                     self.log('INFO', "InstanceId {} workflow for {} status: {}".format(
                         workflow_instance_id, workflow_obj.injectableName, rsp.status))
+                    sleep_f = True
                 elif rsp.status == "succeeded":
                     self.log('INFO', "InstanceId {} workflow completed".format(
                         workflow_instance_id))
                     break
-            # It's of too much load for RackHD to install os for 9 nodes together
-            time.sleep(120)
-
+            if sleep_f:
+                time.sleep(interval)
+        if node_fail_os_install_list or node_pend_on_discovery_list:
+            str_failed = ''
+            str_pend = ''
+            if node_fail_os_install_list:
+                str_failed = "Node(s) failed OS installation): {}\n".format(node_fail_os_install_list)
+            if node_pend_on_discovery_list:
+                str_pend =  "Node(s) pending on discovery workflow: {}\n".format(node_pend_on_discovery_list)
+            self.result(FAIL, "{}{}".format(str_failed, str_pend))
 
     def deconfig(self):
         # To do: Case specific deconfig
