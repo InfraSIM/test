@@ -10,7 +10,18 @@
         "//":     "Windows",
         "//":     "PhotonOS",
         "//": "Refer to: https://rackhd.readthedocs.io/en/latest/rackhd/install_os.html",
-        "os_name": "PhotonOS",
-        "force_mode": true
+        "os_name": "ESXi"
+    },
+    {
+        "os_name": "CentOS"
+    },
+    {
+        "os_name": "CoreOS"
+    },
+    {
+        "os_name": "RHEL"
+    },
+    {
+        "os_name": "Ubuntu"
     }
 ]
