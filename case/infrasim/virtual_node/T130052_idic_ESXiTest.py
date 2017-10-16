@@ -38,7 +38,11 @@ class T130052_idic_ESXiTest(CBaseCase):
         dst_path = node.send_file(os.environ["HOME"]+"/images/esxi6p3-1.qcow2", "/tmp/esxi6p3-1.qcow2")
         #dst_path = "/tmp/esxi6p3-1.qcow2"
 
-        str_node_name = node.get_instance_name()
+        str_node_name = node.retry_get_instance_name()
+        if str_node_name == '':
+            self.result(BLOCK, "Failed to start infrasim instance on {}".
+                        format(node.get_ip()))
+            return
 
         payload = [
             {
@@ -53,7 +57,10 @@ class T130052_idic_ESXiTest(CBaseCase):
             }
         ]
         node.update_instance_config(str_node_name, payload, "compute", "storage_backend")
-
+        payload = {
+                "boot_order": "cnd"
+        }
+        node.update_instance_config(str_node_name, payload, "compute", "boot")
         payload = {
                 "size":4096
         }
@@ -68,7 +75,7 @@ class T130052_idic_ESXiTest(CBaseCase):
         # Running ESXi really requires KVM to be present, using default value without specifying it
         # node.update_instance_config(str_node_name, "true", "compute", "kvm_enabled")
 
-        node.update_instance_config(str_node_name, "e1000", "compute", "networks", 0, "device")
+        node.update_instance_config(str_node_name, "vmxnet3", "compute", "networks", 0, "device")
         node.update_instance_config(str_node_name, "bridge", "compute", "networks", 0, "network_mode")
         node.update_instance_config(str_node_name, "br0", "compute", "networks", 0, "network_name")
 
@@ -78,7 +85,7 @@ class T130052_idic_ESXiTest(CBaseCase):
         if ret != 0:
             self.result(BLOCK, "Fail to set instance {} on {} boot from disk".
                         format(str_node_name, node.get_ip()))
-
+            return
         # Reboot to esxi img
         self.log('INFO', 'Power cycle guest to boot to disk on {}...'.format(node.get_name()))
         ret, rsp = node.get_bmc().ipmi.ipmitool_standard_cmd("chassis power cycle")
@@ -88,7 +95,11 @@ class T130052_idic_ESXiTest(CBaseCase):
             return
 
     def esxcli_test(self, node):
-        str_node_name = node.get_instance_name()
+        str_node_name = node.retry_get_instance_name()
+        if str_node_name == '':
+            self.result(BLOCK, "Failed to start infrasim instance {} on {}".
+                        format(str_node_name, node.get_ip()))
+            return
         qemu_config = node.get_instance_config(str_node_name)
         qemu_first_mac = qemu_config["compute"]["networks"][0]["mac"].lower()
         # Get qemu IP
@@ -134,6 +145,7 @@ class T130052_idic_ESXiTest(CBaseCase):
 
         if match_index == 0:
             self.result(BLOCK, "Tried ssh to guest on {} for {} times already, but still failed.".format(node.get_name(), times))
+            return
         else:
             self.esx_test_ipmi_fru(node)
             self.esx_test_storage_device(node)
