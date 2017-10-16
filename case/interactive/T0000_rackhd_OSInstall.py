@@ -83,7 +83,7 @@ class T0000_rackhd_OSInstall(CBaseCase):
                 break
             # if any node has active workflow,
             # deal with workflow: cancel installation workflow + sleep for discovery workflow
-            sleep_f = False
+            has_discover_workflow = False
             for node_id, node in nodes:
                 rsp = node.get_workflows(active=True).items()
                 if len(rsp) != 0:
@@ -103,7 +103,9 @@ class T0000_rackhd_OSInstall(CBaseCase):
                             node_info = (node_id, node)
                             node_os_install_list.remove(node_info)
                             node_pend_on_discovery_list.append(node_id)
-                        sleep_f = True
+                        has_discover_workflow = True
+            if has_discover_workflow:
+                time.sleep(interval)
 
         # Block test if no node ready for OS installation due to incomplete discovery workflow
         if not node_os_install_list:
@@ -113,7 +115,6 @@ class T0000_rackhd_OSInstall(CBaseCase):
 
         # Start workflow to install OS
         for node_id, node in node_os_install_list:
-            # for node_id, node in self.monorail.get_nodes("compute").items():
             node_bmc_ip = node.get_bmc_ip()
             self.monorail.put_node_ipmi_obm(
                 node_id=node_id, host=node_bmc_ip, username="admin", password="admin")
@@ -126,7 +127,7 @@ class T0000_rackhd_OSInstall(CBaseCase):
         for i in range(retry):
             retry = 60
             interval = float(30)
-            sleep_f = False
+            has_os_install_workflow = False
             for node_id, node in node_os_install_list:
                 rsp = node.get_workflows(active=True).items()
                 if len(rsp) != 0:
@@ -139,13 +140,15 @@ class T0000_rackhd_OSInstall(CBaseCase):
                         node_fail_os_install_list.append(node_id)
                     self.log('INFO', "InstanceId {} workflow for {} status: {}".format(
                         workflow_instance_id, workflow_obj.injectableName, rsp.status))
-                    sleep_f = True
+                    has_os_install_workflow = True
                 elif rsp.status == "succeeded":
                     self.log('INFO', "InstanceId {} workflow completed".format(
                         workflow_instance_id))
                     break
-            if sleep_f:
+            if has_os_install_workflow:
                 time.sleep(interval)
+
+        # Log for test result
         if node_fail_os_install_list or node_pend_on_discovery_list:
             str_failed = ''
             str_pend = ''
