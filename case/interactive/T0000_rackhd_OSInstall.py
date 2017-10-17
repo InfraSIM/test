@@ -100,8 +100,11 @@ class T0000_rackhd_OSInstall(CBaseCase):
                             self.log("WARNING", "There is {0} active workflow(s) on node {1}."
                                                 "Will not continue with OS installtion on this node\n".
                                         format(len(rsp), node_id))
-                            node_info = (node_id, node)
-                            node_os_install_list.remove(node_info)
+                            index = 0
+                            for node_id_pend, node_pend in node_os_install_list:
+                                if node_id_pend == node_id:
+                                    node_os_install_list.pop(index)
+                                index = index + 1
                             node_pend_on_discovery_list.append(node_id)
                         has_discover_workflow = True
             if has_discover_workflow:
@@ -114,6 +117,7 @@ class T0000_rackhd_OSInstall(CBaseCase):
             return
 
         # Start workflow to install OS
+        node_workflow_dic = {}
         for node_id, node in node_os_install_list:
             node_bmc_ip = node.get_bmc_ip()
             self.monorail.put_node_ipmi_obm(
@@ -121,6 +125,13 @@ class T0000_rackhd_OSInstall(CBaseCase):
             node.install_os(self.data["os_name"])
             self.log(
                 'WARNING', 'Installation on node {} starts, please open VNC to check'.format(node_id))
+            rsp = node.get_workflows(active=True).items()
+            if len(rsp) != 0:
+                workflow_obj = rsp[0][1]
+                workflow_instance_id = workflow_obj.instanceId
+                node_workflow_dic[node_id] = workflow_instance_id
+            else:
+                self.log("WARNING", "OS installation workflow is not active on node ID: {}".format(node_id))
             time.sleep(120)
 
         # Verify os install succeeded
@@ -129,11 +140,7 @@ class T0000_rackhd_OSInstall(CBaseCase):
             interval = float(30)
             has_os_install_workflow = False
             for node_id, node in node_os_install_list:
-                rsp = node.get_workflows(active=True).items()
-                if len(rsp) != 0:
-                    workflow_obj = rsp[0][1]
-                    workflow_instance_id = workflow_obj.instanceId
-                rsp = node.get_workflow_by_id(workflow_instance_id)
+                rsp = node.get_workflow_by_id(node_workflow_dic[node_id])
                 if rsp.status != "succeeded":
                     if i == retry - 1:
                         time_in_min = float(retry * interval / 60)
@@ -144,7 +151,6 @@ class T0000_rackhd_OSInstall(CBaseCase):
                 elif rsp.status == "succeeded":
                     self.log('INFO', "InstanceId {} workflow completed".format(
                         workflow_instance_id))
-                    break
             if has_os_install_workflow:
                 time.sleep(interval)
 
@@ -157,6 +163,7 @@ class T0000_rackhd_OSInstall(CBaseCase):
             if node_pend_on_discovery_list:
                 str_pend =  "Node(s) pending on discovery workflow: {}\n".format(node_pend_on_discovery_list)
             self.result(FAIL, "{}{}".format(str_failed, str_pend))
+
 
     def deconfig(self):
         # To do: Case specific deconfig
