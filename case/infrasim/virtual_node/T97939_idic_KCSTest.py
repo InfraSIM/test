@@ -45,7 +45,12 @@ class T97939_idic_KCSTest(CBaseCase):
 
     def boot_to_disk(self, node):
         dst_path = node.send_file("image/kcs.img", "kcs.img")
-        str_node_name = node.get_instance_name()
+        str_node_name = node.retry_get_instance_name()
+        if str_node_name == '':
+            self.result(BLOCK, "Failed to start infrasim instance on {}".
+                        format(node.get_ip()))
+            return
+
         payload = [
             {
                 "type": "ahci",
@@ -61,6 +66,7 @@ class T97939_idic_KCSTest(CBaseCase):
         if ret != 0:
             self.result(BLOCK, "Fail to set instance {} on {} boot from disk".
                         format(str_node_name, node.get_ip()))
+            return
 
         # Reboot to kcs.img
         self.log('INFO', 'Power cycle guest to boot to disk on {}...'.format(node.get_name()))
@@ -71,7 +77,12 @@ class T97939_idic_KCSTest(CBaseCase):
             return
 
     def kcs_test(self, node):
-        str_node_name = node.get_instance_name()
+        str_node_name = node.retry_get_instance_name()
+        if str_node_name == '':
+            self.result(BLOCK, "Failed to start infrasim instance on {}".
+                        format(node.get_ip()))
+            return
+
         qemu_config = node.get_instance_config(str_node_name)
         qemu_first_mac = qemu_config["compute"]["networks"][0]["mac"].lower()
         # Get qemu IP
@@ -143,6 +154,7 @@ class T97939_idic_KCSTest(CBaseCase):
                         corresponding lan channel in {}.json.
                         """
                         .format(e, e, self.__class__.__name__))
+            return
 
         rsp = node.ssh.send_command_wait_string(str_command='ipmitool lan print {}'.
                                                 format(node_lan_channel)+chr(13),
