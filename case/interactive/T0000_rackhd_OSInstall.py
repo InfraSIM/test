@@ -63,28 +63,29 @@ class T0000_rackhd_OSInstall(CBaseCase):
     def test(self):
         # Check if any node has any active OS install workflows
         # If active workflow is for discovery, we will just wait
-        node_os_install_list = []
         node_pend_on_discovery_list = []
+        node_os_install_workflow_inactive_list = []
+        node_fail_post_os_install_workflow_list = []
         node_fail_os_install_list = []
         interval = 6
         retry = 30
-        nodes = self.monorail.get_nodes("compute").items()
-        node_os_install_list = self.monorail.get_nodes("compute").items()
+        node_os_install_dic = self.monorail.get_nodes("compute")
 
         for i in range(retry):
-            # if no nodes' has active workflow, break the 'for' loop
-            count = len(nodes)
-            for node_id, node in nodes:
+            # if no node has active workflow, break the loop
+            count = len(node_os_install_dic)
+            for node_id, node in node_os_install_dic.iteritems():
                 rsp = node.get_workflows(active=True).items()
                 if len(rsp) == 0:
                     count = count - 1
             if count == 0:
                 self.log('INFO', "No active workflow on any node, ready for OS installation")
                 break
+
             # if any node has active workflow,
             # deal with workflow: cancel installation workflow + sleep for discovery workflow
             has_discover_workflow = False
-            for node_id, node in nodes:
+            for node_id, node in node_os_install_dic.iteritems():
                 rsp = node.get_workflows(active=True).items()
                 if len(rsp) != 0:
                     workflow_obj = rsp[0][1]
@@ -93,76 +94,94 @@ class T0000_rackhd_OSInstall(CBaseCase):
                              workflow_instance_id, workflow_obj.injectableName))
                     if "Install" in workflow_obj.injectableName:
                         workflow_obj.cancel()
-                        self.log('INFO', "InstanceId {} workflow is cancelled". format(
+                        self.log('INFO', "InstanceId {} workflow for {} is cancelled". format(
                                  workflow_instance_id, workflow_obj.injectableName))
                     else:
                         if i == retry - 1:
                             self.log("WARNING", "There is {0} active workflow(s) on node {1}."
                                                 "Will not continue with OS installtion on this node\n".
                                         format(len(rsp), node_id))
-                            index = 0
-                            for node_id_pend, node_pend in node_os_install_list:
-                                if node_id_pend == node_id:
-                                    node_os_install_list.pop(index)
-                                index = index + 1
                             node_pend_on_discovery_list.append(node_id)
                         has_discover_workflow = True
             if has_discover_workflow:
                 time.sleep(interval)
+            else:
+                break
+
+        for node_id in node_pend_on_discovery_list:
+            del(node_os_install_dic[node_id])
 
         # Block test if no node ready for OS installation due to incomplete discovery workflow
-        if not node_os_install_list:
+        if not node_os_install_dic:
             self.result(BLOCK, "All nodes are pending on discovery workflow."
                         "Will not preceed with OS installation")
             return
 
         # Start workflow to install OS
-        node_workflow_dic = {}
-        for node_id, node in node_os_install_list:
+        install_interval = 120
+        node_workflow_list = {}
+        for node_id, node in node_os_install_dic.iteritems():
             node_bmc_ip = node.get_bmc_ip()
             self.monorail.put_node_ipmi_obm(
                 node_id=node_id, host=node_bmc_ip, username="admin", password="admin")
-            node.install_os(self.data["os_name"])
+            try:
+                node.install_os(self.data["os_name"])
+            except Exception as e:
+                self.log("WARNING", "Exception in loading or posting OS installation workflow on node ID: {}".format(node_id))
+                node_fail_post_os_install_workflow_list.append(node_id)
             self.log(
-                'WARNING', 'Installation on node {} starts, please open VNC to check'.format(node_id))
+                'INFO', 'Installation on node {} starts, please open VNC to check'.format(node_id))
             rsp = node.get_workflows(active=True).items()
             if len(rsp) != 0:
                 workflow_obj = rsp[0][1]
-                workflow_instance_id = workflow_obj.instanceId
-                node_workflow_dic[node_id] = workflow_instance_id
+                if "Install" in workflow_obj.injectableName:
+                    workflow_instance_id = workflow_obj.instanceId
+                    node_workflow_list[node_id] = workflow_instance_id
             else:
+                node_os_install_workflow_inactive_list.append(node_id)
                 self.log("WARNING", "OS installation workflow is not active on node ID: {}".format(node_id))
-            time.sleep(120)
+            time.sleep(install_interval)
+
+        for node_id in node_fail_post_os_install_workflow_list:
+            del(node_os_install_dic[node_id])
 
         # Verify os install succeeded
+        retry = 60
+        interval = float(30)
         for i in range(retry):
-            retry = 60
-            interval = float(30)
             has_os_install_workflow = False
-            for node_id, node in node_os_install_list:
-                rsp = node.get_workflow_by_id(node_workflow_dic[node_id])
+            for node_id, node in node_os_install_dic.iteritems():
+                rsp = node.get_workflow_by_id(node_workflow_list[node_id])
                 if rsp.status != "succeeded":
                     if i == retry - 1:
                         time_in_min = float(retry * interval / 60)
                         node_fail_os_install_list.append(node_id)
-                    self.log('INFO', "InstanceId {} workflow for {} status: {}".format(
-                        workflow_instance_id, workflow_obj.injectableName, rsp.status))
+                    self.log('INFO', "InstanceId {} of NodeId {} for {} workflow status: {}".format(
+                        node_workflow_list[node_id], node_id, self.data["os_name"], rsp.status))
                     has_os_install_workflow = True
                 elif rsp.status == "succeeded":
-                    self.log('INFO', "InstanceId {} workflow completed".format(
-                        workflow_instance_id))
+                    self.log('INFO', "InstanceId {} of nodeId {} for {} workflow completed".format(
+                        node_workflow_list[node_id], node_id, self.data["os_name"]))
             if has_os_install_workflow:
                 time.sleep(interval)
+            else:
+                break
 
         # Log for test result
-        if node_fail_os_install_list or node_pend_on_discovery_list:
+        if node_fail_os_install_list or node_pend_on_discovery_list or node_os_install_workflow_inactive_list:
             str_failed = ''
             str_pend = ''
+            str_inactive = ''
+            str_post_fail = ''
             if node_fail_os_install_list:
-                str_failed = "Node(s) failed OS installation): {}\n".format(node_fail_os_install_list)
+                str_failed = "Node(s) failed {} installation: {}\n".format(self.data["os_name"], node_fail_os_install_list)
             if node_pend_on_discovery_list:
-                str_pend =  "Node(s) pending on discovery workflow: {}\n".format(node_pend_on_discovery_list)
-            self.result(FAIL, "{}{}".format(str_failed, str_pend))
+                str_pend =  "Node(s) pending on discovery workflow before {} installation: {}\n".format(self.data["os_name"], node_pend_on_discovery_list)
+            if node_os_install_workflow_inactive_list:
+                str_inactive = "Node(s) {} installation workflow inactive: {}\n".format(self.data["os_name"], node_os_install_workflow_inactive_list)
+            if node_fail_post_os_install_workflow_list:
+                str_post_fail = "Node(s) failed in loading or posting {} installation workflow: {}\n".format(self.data["os_name"], node_fail_post_os_install_workflow_list)
+            self.result(FAIL, "{}{}{}{}".format(str_failed, str_pend, str_inactive, str_post_fail))
 
 
     def deconfig(self):
