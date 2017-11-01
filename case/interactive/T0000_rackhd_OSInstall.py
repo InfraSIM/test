@@ -63,10 +63,12 @@ class T0000_rackhd_OSInstall(CBaseCase):
     def test(self):
         # Check if any node has any active OS install workflows
         # If active workflow is for discovery, we will just wait
+        install_time_statistics_dic = {}
         node_pend_on_discovery_list = []
         node_os_install_workflow_inactive_list = []
         node_fail_post_os_install_workflow_list = []
         node_fail_os_install_list = []
+        node_bmc_ip = {}
         interval = 6
         retry = 30
         node_os_install_dic = self.monorail.get_nodes("compute")
@@ -74,7 +76,7 @@ class T0000_rackhd_OSInstall(CBaseCase):
         for i in range(retry):
             # if no node has active workflow, break the loop
             count = len(node_os_install_dic)
-            for node_id, node in node_os_install_dic.iteritems():
+            for node in node_os_install_dic.values():
                 rsp = node.get_workflows(active=True).items()
                 if len(rsp) == 0:
                     count = count - 1
@@ -85,7 +87,7 @@ class T0000_rackhd_OSInstall(CBaseCase):
             # if any node has active workflow,
             # deal with workflow: cancel installation workflow + sleep for discovery workflow
             has_discover_workflow = False
-            for node_id, node in node_os_install_dic.iteritems():
+            for node in node_os_install_dic.values():
                 rsp = node.get_workflows(active=True).items()
                 if len(rsp) != 0:
                     workflow_obj = rsp[0][1]
@@ -100,8 +102,8 @@ class T0000_rackhd_OSInstall(CBaseCase):
                         if i == retry - 1:
                             self.log("WARNING", "There is {0} active workflow(s) on node {1}."
                                                 "Will not continue with OS installtion on this node\n".
-                                        format(len(rsp), node_id))
-                            node_pend_on_discovery_list.append(node_id)
+                                        format(len(rsp), node.id))
+                            node_pend_on_discovery_list.append(node.id)
                         has_discover_workflow = True
             if has_discover_workflow:
                 time.sleep(interval)
@@ -121,11 +123,12 @@ class T0000_rackhd_OSInstall(CBaseCase):
         install_interval = 120
         node_workflow_list = {}
         for node_id, node in node_os_install_dic.iteritems():
-            node_bmc_ip = node.get_bmc_ip()
+            node_bmc_ip[node.id] = node.get_bmc_ip()
             self.monorail.put_node_ipmi_obm(
-                node_id=node_id, host=node_bmc_ip, username="admin", password="admin")
+                node_id=node_id, host=node_bmc_ip[node.id], username="admin", password="admin")
             try:
                 node.install_os(self.data["os_name"])
+                install_time_statistics_dic[node_id] = {"start": time.time()}
             except Exception as e:
                 self.log("WARNING", "Exception in loading or posting OS installation workflow on node ID: {}".format(node_id))
                 node_fail_post_os_install_workflow_list.append(node_id)
@@ -146,22 +149,28 @@ class T0000_rackhd_OSInstall(CBaseCase):
             del(node_os_install_dic[node_id])
 
         # Verify os install succeeded
-        retry = 60
-        interval = float(30)
+        interval = 30
+        retry = self.data["timeout"] * 60 / interval
+        time.time()
+        print("Retry: {}".format(retry))
         for i in range(retry):
             has_os_install_workflow = False
             for node_id, node in node_os_install_dic.iteritems():
                 rsp = node.get_workflow_by_id(node_workflow_list[node_id])
-                if rsp.status != "succeeded":
+                if rsp.status == "running":
                     if i == retry - 1:
-                        time_in_min = float(retry * interval / 60)
-                        node_fail_os_install_list.append(node_id)
-                    self.log('INFO', "InstanceId {} of NodeId {} for {} workflow status: {}".format(
-                        node_workflow_list[node_id], node_id, self.data["os_name"], rsp.status))
+                        node_fail_os_install_list.append(node)
+                    self.log('INFO', "InstanceId {} of node id {} for {} workflow status: {}".format(
+                             node_workflow_list[node_id], node_id, self.data["os_name"], rsp.status))
                     has_os_install_workflow = True
                 elif rsp.status == "succeeded":
-                    self.log('INFO', "InstanceId {} of nodeId {} for {} workflow completed".format(
-                        node_workflow_list[node_id], node_id, self.data["os_name"]))
+                    self.log('INFO', "InstanceId {} of node id {} for {} workflow completed".format(
+                             node_workflow_list[node_id], node_id, self.data["os_name"]))
+                    install_time_statistics_dic[node_id]["stop"] = time.time()
+                else:
+                    self.log('WARNING', "Instance {} of node id {} for {} workflow not success.Status: {}".format(
+                             node_workflow_list[node_id], node_id, self.data["os_name"], rsp.status))
+                    node_fail_os_install_list.append(node)
             if has_os_install_workflow:
                 time.sleep(interval)
             else:
@@ -174,14 +183,35 @@ class T0000_rackhd_OSInstall(CBaseCase):
             str_inactive = ''
             str_post_fail = ''
             if node_fail_os_install_list:
-                str_failed = "Node(s) failed {} installation: {}\n".format(self.data["os_name"], node_fail_os_install_list)
+                err_msgs = []
+                for node in node_fail_os_install_list:
+                    node_ohai = node.get_catalog_from_identify("ohai")
+                    node_mfg = node_ohai.data["dmi"]["system"]["manufacturer"]
+                    node_product = node_ohai.data["dmi"]["system"]["Product Name"]
+                    msg = "\tNode ID: {node_id}, BMC IP: {bmc_ip}, Type: {node_mfg} {product}".\
+                          format(node_id=node.id, bmc_ip=node_bmc_ip[node.id],
+                                 node_mfg=node_mfg, product=node_product)
+                    err_msgs.append(msg)
+                str_failed = "{} node(s) failed {} installation: \n{}".format(
+                    len(node_fail_os_install_list), self.data["os_name"], "\n".join(err_msgs))
+
             if node_pend_on_discovery_list:
-                str_pend =  "Node(s) pending on discovery workflow before {} installation: {}\n".format(self.data["os_name"], node_pend_on_discovery_list)
+                str_pend = "{} node(s) pending on discovery workflow before {} installation: {}".format(
+                    len(node_pend_on_discovery_list), self.data["os_name"], node_pend_on_discovery_list)
             if node_os_install_workflow_inactive_list:
-                str_inactive = "Node(s) {} installation workflow inactive: {}\n".format(self.data["os_name"], node_os_install_workflow_inactive_list)
+                str_inactive = "{} node(s) {} installation workflow inactive: {}".format(len(
+                    node_os_install_workflow_inactive_list), self.data["os_name"], node_os_install_workflow_inactive_list)
             if node_fail_post_os_install_workflow_list:
-                str_post_fail = "Node(s) failed in loading or posting {} installation workflow: {}\n".format(self.data["os_name"], node_fail_post_os_install_workflow_list)
-            self.result(FAIL, "{}{}{}{}".format(str_failed, str_pend, str_inactive, str_post_fail))
+                str_post_fail = "{} node(s) failed in loading or posting {} installation workflow: {}".format(len(
+                    node_fail_post_os_install_workflow_list), self.data["os_name"], node_fail_post_os_install_workflow_list)
+            self.result(FAIL, "\n".join([str_failed, str_pend, str_inactive, str_post_fail]))
+
+        # Summarize os install statistics
+        for node_id, time_dic in install_time_statistics_dic:
+            if "stop" in time_dic:
+                elapse = time_dic["stop"] - time_dic["start"]
+                self.log("INFO", "Node {} install {} elapse time: {}min {}s".
+                                 format(node_id, self.data["os_name"], int(elapse) / 60, int(elapse) % 60))
 
 
     def deconfig(self):
