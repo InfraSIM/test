@@ -10,18 +10,24 @@
         "//":     "Windows",
         "//":     "PhotonOS",
         "//": "Refer to: https://rackhd.readthedocs.io/en/latest/rackhd/install_os.html",
-        "os_name": "ESXi"
+        "//": "timeout is in minute, if the OS doesn't finish booting in given time.",
+        "os_name": "ESXi",
+        "timeout": 60
     },
     {
-        "os_name": "CentOS"
+        "os_name": "CentOS",
+        "timeout": 120
     },
     {
-        "os_name": "CoreOS"
+        "os_name": "CoreOS",
+        "timeout": 120
     },
     {
-        "os_name": "RHEL"
+        "os_name": "RHEL",
+        "timeout": 120
     },
     {
-        "os_name": "Ubuntu"
+        "os_name": "Ubuntu",
+        "timeout": 120
     }
 ]
