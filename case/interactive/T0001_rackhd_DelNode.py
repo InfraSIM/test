@@ -21,7 +21,13 @@ class T0001_rackhd_DelNode(CBaseCase):
             if len(rsp) != 0:
                 workflow_obj = rsp[0][1]
                 workflow_obj.cancel()
-            node.delete()
+            try:
+                node.delete()
+            except:
+                # If fails in deleting node due to active workflow unable to be canceled, remove workflow from rackhd mongodb
+                ssh = self.monorail.obj_ssh_agent
+                rsp = ssh.remote_shell("echo 'db.graphobjects.remove({\"node\": " + "ObjectId(\"{0}\")".format(node_id) + "})' | mongo pxe")
+                node.delete()
         for enclosure_id, enclosure in self.monorail.get_nodes("enclosure").items():
             enclosure.delete()
 
