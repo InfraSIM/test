@@ -663,15 +663,35 @@ def update_option(config, payload, *args):
         "a": {"b": 1}
     }
     update_option(config, 2, "a", "b") updates config to {"a":{"b":2}}
-    update_option(config, 2, "b") raises exception since no key "b" for this dict
+    update_option(config, 2, "b") updates config to {"a":2, "b":2}
     update_option(config, 2, "a") updates config to {"a":2}
     """
     if len(args) == 0:
         raise Exception(update_option.__doc__)
     if not has_option(config, *args):
-        raise KeyError("Target object has no key chain like: {}".format(' > '.join(args)))
+        add_option(config, payload, *args)
+        return
 
     target = config
     for i in range(len(args)-1):
         target = target[args[i]]
+    target[args[-1]] = payload
+
+
+def add_option(config, payload, *args):
+    """
+    Add option as described in *args to the config, and set payload to be its value
+    :param config: a python dict
+    :param payload: target value to add
+    :param args: a list of option chains, e.g.
+    if config is:
+    {
+        "a": "{"b": 1}"
+    }
+    add_option(config, 2, "a", "c") updates config to {"a": {"b": 2, "c": 2}}
+    """
+    target = config
+    for i in range(len(args) - 1):
+        if not target.get(args[i], None):
+            target[args[i]] = ""
     target[args[-1]] = payload
