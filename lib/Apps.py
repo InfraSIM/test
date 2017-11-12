@@ -686,7 +686,7 @@ def add_option(config, payload, *args):
     :param args: a list of option chains, e.g.
     if config is:
     {
-        "a": "{"b": 1}"
+        "a": {"b": 1}
     }
     add_option(config, 2, "a", "c") updates config to {"a": {"b": 2, "c": 2}}
     """
