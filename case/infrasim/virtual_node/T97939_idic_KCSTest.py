@@ -30,6 +30,7 @@ class T97939_idic_KCSTest(CBaseCase):
             self.log('WARNING', "kcs.img fail on md5 sum, delete and download now...")
             os.remove("image/kcs.img")
             urllib.urlretrieve("https://github.com/InfraSIM/test/raw/master/image/kcs.img", "image/kcs.img")
+
         else:
             self.log("INFO", "kcs.img is correct for test")
 
@@ -45,6 +46,14 @@ class T97939_idic_KCSTest(CBaseCase):
 
     def boot_to_disk(self, node):
         dst_path = node.send_file("image/kcs.img", "kcs.img")
+        rsp = node.ssh.send_command_wait_string(str_command=r"md5sum /home/infrasim/kcs.img"+chr(13), wait="~$")
+        MD5_KCS_IMG = "986e5e63e8231a307babfbe9c81ca210"
+        if  MD5_KCS_IMG in rsp:
+            self.log("INFO", "Img is correct for test on {}.".format(node.get_ip()))
+        else:
+            self.result(BLOCK, "Failed to verify kcs.img on {}".
+                        format(node.get_ip()))
+            return
         str_node_name = node.retry_get_instance_name()
         if str_node_name == '':
             self.result(BLOCK, "Failed to start infrasim instance on {}".
@@ -69,7 +78,7 @@ class T97939_idic_KCSTest(CBaseCase):
             return
 
         # Reboot to kcs.img
-        self.log('INFO', 'Power cycle guest to boot to disk on {}...'.format(node.get_name()))
+        self.log("INFO", "Power cycle guest to boot to disk on {}...".format(node.get_name()))
         ret, rsp = node.get_bmc().ipmi.ipmitool_standard_cmd("chassis power cycle")
         if ret != 0:
             self.result(BLOCK, "Fail to set instance {} on {} boot from disk".
@@ -82,7 +91,6 @@ class T97939_idic_KCSTest(CBaseCase):
             self.result(BLOCK, "Failed to start infrasim instance on {}".
                         format(node.get_ip()))
             return
-
         qemu_config = node.get_instance_config(str_node_name)
         qemu_first_mac = qemu_config["compute"]["networks"][0]["mac"].lower()
         # Get qemu IP

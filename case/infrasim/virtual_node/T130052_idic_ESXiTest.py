@@ -33,11 +33,18 @@ class T130052_idic_ESXiTest(CBaseCase):
 
     def boot_to_disk(self, node):
         # Delete existing image if any, it might lead issue with booting
+        MD5_ESXI6P31_IMG = "310579038c772d8222f1f0f2cdfbff35"
         print node.ssh.send_command_wait_string(str_command="echo infrasim | sudo -S rm -f /tmp/esxi6p3-1.qcow2"+chr(13), wait="~$")
 
         dst_path = node.send_file(os.environ["HOME"]+"/images/esxi6p3-1.qcow2", "/tmp/esxi6p3-1.qcow2")
         #dst_path = "/tmp/esxi6p3-1.qcow2"
-
+        rsp = node.ssh.send_command_wait_string(str_command=r"md5sum /tmp/esxi6p3-1.qcow2"+chr(13), wait="~$")
+        if  MD5_ESXI6P31_IMG in rsp:
+            self.log("INFO", "Img is correct for test on {}.".format(node.get_ip()))
+        else:
+            self.result(BLOCK, "Failed to verify esxi6p3-1.qcow2 on {}".
+                        format(node.get_ip()))
+            return
         str_node_name = node.retry_get_instance_name()
         if str_node_name == '':
             self.result(BLOCK, "Failed to start infrasim instance on {}".
