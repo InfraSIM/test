@@ -92,24 +92,37 @@ class T97939_idic_KCSTest(CBaseCase):
                         format(node.get_ip()))
             return
         qemu_config = node.get_instance_config(str_node_name)
-        qemu_first_mac = qemu_config["compute"]["networks"][0]["mac"].lower()
+        qemu_macs = []
+        for i in range(0, len(qemu_config["compute"]["networks"])):
+            mac = qemu_config["compute"]["networks"][i].get("mac", None)
+            if mac:
+                qemu_macs.append(mac.lower())
         # Get qemu IP
-        rsp = node.ssh.send_command_wait_string(str_command=r"arp -e | grep {} | awk '{{print $1}}'".
-                                                format(qemu_first_mac)+chr(13),
-                                                wait="~$")
-        qemu_first_ip = rsp.splitlines()[1]
-        if not is_valid_ip(qemu_first_ip):
-            # If fail to get IP via arp, try to query via dhcp lease
-            try:
-                qemu_first_ip = self.get_guest_ip(qemu_first_mac)
-            except:
-                self.result(BLOCK, "Fail to get virtual compute IP address on {} {}".
-                            format(node.get_name(), node.get_ip()))
-                return
-            else:
-                self.log("INFO", "Guest IP is {} on node {}".format(qemu_first_ip, node.get_name()))
+        # Since in kcs image's network config, it has only one nic up with one bridge connected,
+        # when there are mutiple nics in qemu config, not sure which one will be brought up, check
+        # all one by one until we find the online ip.
+
+        for mac in qemu_macs[:]:
+            rsp = node.ssh.send_command_wait_string(str_command=r"arp -e | grep {} | awk '{{print $1}}'".
+                                                    format(mac)+chr(13),
+                                                    wait="~$")
+            qemu_guest_ip = rsp.splitlines()[1]
+            if not is_valid_ip(qemu_guest_ip):
+                # If fail to get IP via arp, try to query via dhcp lease
+                try:
+                    qemu_guest_ip = self.get_guest_ip(mac)
+                except:
+                    qemu_macs.remove(mac)
+                    continue
+                else:
+                    self.log("INFO", "Guest IP is {} on node {}".format(qemu_guest_ip, node.get_name()))
+                    break
+        if not qemu_macs:
+            self.result(BLOCK, "Fail to get virtual compute IP address on {} {}".
+                        format(node.get_name(), node.get_ip()))
+            return
         # SSH to guest
-        node.ssh.send_command_wait_string(str_command="ssh root@{}".format(qemu_first_ip)+chr(13),
+        node.ssh.send_command_wait_string(str_command="ssh root@{}".format(qemu_guest_ip)+chr(13),
                                           wait=["(yes/no)", "password"])
         match_index = node.ssh.get_match_index()
         if match_index == 0:
@@ -220,6 +233,7 @@ class T97939_idic_KCSTest(CBaseCase):
                 if rsp != 0:
                     self.log('INFO', 'Find an IP {} lease for MAC {}, but this IP is not online'.
                              format(guest_ip, str_mac))
+                    guest_ip = ''
                     time.sleep(30)
                     continue
                 else:
