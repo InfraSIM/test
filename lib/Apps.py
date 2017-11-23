@@ -652,6 +652,29 @@ def has_option(config, *args):
     return True
 
 
+def get_option(config, *args):
+    """
+    Get option chains value
+    :param config: a python dict
+    :param args: a list of option chains, e.g.
+    if config is:
+    {
+        "a": {"b": 1}
+    }
+    get_option(config, "a") returns {"b": 1}
+    """
+    if len(args) == 0:
+        raise Exception(get_option.__doc__)
+    if not has_option(config, *args):
+        raise Exception("Option not found.")
+        return
+
+    target = config
+    for i in range(len(args)-1):
+        target = target[args[i]]
+    return target[args[-1]]
+
+
 def update_option(config, payload, *args):
     """
     Update payload to config's target option, the option can be a key chains
