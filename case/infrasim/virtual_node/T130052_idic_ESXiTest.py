@@ -17,10 +17,13 @@ class T130052_idic_ESXiTest(CBaseCase):
         self.enable_node_ssh()
 
         if not os.path.isfile(os.environ["HOME"]+"/images/esxi6p3-1.qcow2"):
-            print os.environ["HOME"]+"/images/esxi6p3-1.qcow2"
-            self.log('INFO', "No esxi image for test.")
-            raise Exception('No esxi image not found. Please put one in folder \'~/images/\'')
-    
+            self.log('BLOCK', "No esxi image for test.")
+            raise Exception("No esxi image not found. Please put 'esxi6p3-1.qcow2' in folder \'~/images/\'")
+        if not os.path.isfile(os.environ["HOME"]+"/images/esxi6p3-1.qcow2.md5"):
+            self.log('BLOCK', "Esxi image md5 missing.")
+            raise Exception("Esxi image md5 missing. Please put correct md5 file 'esxi6p3-1.qcow2.md5' in folder \'~/images/\'")
+
+
     def test(self):
         gevent.joinall([gevent.spawn(self.boot_to_disk, obj_node)
                        for obj_node in self.stack.walk_node()])
@@ -33,18 +36,22 @@ class T130052_idic_ESXiTest(CBaseCase):
 
     def boot_to_disk(self, node):
         # Delete existing image if any, it might lead issue with booting
-        MD5_ESXI6P31_IMG = "310579038c772d8222f1f0f2cdfbff35"
+        source_path = os.path.join(os.environ["HOME"],"images")
+        MD5_ESXI6P31_IMG = ""
+        with open(os.path.join(source_path, "esxi6p3-1.qcow2.md5"), "r") as f:
+            MD5_ESXI6P31_IMG = f.read().strip()
         print node.ssh.send_command_wait_string(str_command="echo infrasim | sudo -S rm -f /tmp/esxi6p3-1.qcow2"+chr(13), wait="~$")
-
-        dst_path = node.send_file(os.environ["HOME"]+"/images/esxi6p3-1.qcow2", "/tmp/esxi6p3-1.qcow2")
         #dst_path = "/tmp/esxi6p3-1.qcow2"
+        dst_path = node.send_file(os.path.join(source_path, "esxi6p3-1.qcow2"), "/tmp/esxi6p3-1.qcow2")
+        node.send_file(os.path.join(source_path, "esxi6p3-1.qcow2.md5"), "/tmp/esxi6p3-1.qcow2.md5")
         rsp = node.ssh.send_command_wait_string(str_command=r"md5sum /tmp/esxi6p3-1.qcow2"+chr(13), wait="~$")
-        if  MD5_ESXI6P31_IMG in rsp:
+        if MD5_ESXI6P31_IMG in rsp:
             self.log("INFO", "Img is correct for test on {}.".format(node.get_ip()))
         else:
             self.result(BLOCK, "Failed to verify esxi6p3-1.qcow2 on {}".
                         format(node.get_ip()))
             return
+
         str_node_name = node.retry_get_instance_name()
         if str_node_name == '':
             self.result(BLOCK, "Failed to start infrasim instance on {}".
