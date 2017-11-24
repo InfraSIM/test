@@ -22,7 +22,12 @@ class T97939_idic_KCSTest(CBaseCase):
         CBaseCase.config(self)
         self.enable_node_ssh()
 
-        MD5_KCS_IMG = "986e5e63e8231a307babfbe9c81ca210"
+        MD5_KCS_IMG = ""
+        if not os.path.exists("image/kcs.img.md5"):
+            self.log('INFO', "Missing kcs.img.md5, download now...")
+            urllib.urlretrieve("https://github.com/InfraSIM/test/raw/master/image/kcs.img.md5", "image/kcs.img.md5")
+        with open("image/kcs.img.md5", "r") as f:
+            MD5_KCS_IMG = f.read().strip()
         if not os.path.exists("image/kcs.img"):
             self.log('INFO', "No kcs.img for test, download now...")
             urllib.urlretrieve("https://github.com/InfraSIM/test/raw/master/image/kcs.img", "image/kcs.img")
@@ -45,10 +50,12 @@ class T97939_idic_KCSTest(CBaseCase):
         CBaseCase.deconfig(self)
 
     def boot_to_disk(self, node):
+        MD5_KCS_IMG = ""
         dst_path = node.send_file("image/kcs.img", "kcs.img")
         rsp = node.ssh.send_command_wait_string(str_command=r"md5sum /home/infrasim/kcs.img"+chr(13), wait="~$")
-        MD5_KCS_IMG = "986e5e63e8231a307babfbe9c81ca210"
-        if  MD5_KCS_IMG in rsp:
+        with open("image/kcs.img.md5", "r") as f:
+                MD5_KCS_IMG = f.read().strip()
+        if MD5_KCS_IMG in rsp:
             self.log("INFO", "Img is correct for test on {}.".format(node.get_ip()))
         else:
             self.result(BLOCK, "Failed to verify kcs.img on {}".
