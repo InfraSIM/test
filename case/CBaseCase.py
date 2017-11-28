@@ -523,6 +523,11 @@ class CBaseCase(CLogger):
         if str_result == FAIL:
             self.log('ERROR', 'Test case failed: \n%s' % str_info)
             self.list_error_code.append('\n{}'.format(str_info))
+            if Env.str_debug == "on":
+                # the self._deconfig is meaningful here for an elegant ending.
+                # It won't stop/destory/restart node, mainly release connections of ssh, rest agent and iol
+                self._deconfig()
+                os._exit(0)
         elif str_result == SKIP:
             self.log('WARNING', 'Test case is skipped: \n%s' % str_info)
             self.list_error_code.append('\n{}'.format(str_info))
