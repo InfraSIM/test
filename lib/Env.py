@@ -46,6 +46,7 @@ str_testrail_root = ''
 str_testrail_username = ''
 str_testrail_password = ''
 str_alias = ''
+str_debug = 'off'
 
 if not os.path.isfile(str_config_file):
     msg = 'conf.xml not found. Please create one based on conf.xml ' \
@@ -275,7 +276,7 @@ def load_hwimo(str_hwimo_ip, str_hwimo_username, str_hwimo_password):
         errmsg = 'Unexpected exception happened when loading HWIMO {0}:{1}@{2}, trace back: \n{3}'.\
             format(str_hwimo_username, str_hwimo_password, str_hwimo_ip, traceback.format_exc())
         log('ERROR', errmsg)
-        
+
  
 if __name__ == '__main__':
     print 'Env module is not runnable'

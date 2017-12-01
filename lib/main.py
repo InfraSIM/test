@@ -99,6 +99,11 @@ def load_environment():
     else:
         Env.log('WARNING', 'Both stack and HWIMO information are missing')
 
+    if obj_options.str_debug:
+        Env.log('INFO', 'Will stop on error, ' \
+                'when a case fails, Puffer is going to stop execution of the case and won\'t ' \
+                ' execute any other cases.')
+        Env.str_debug = obj_options.str_debug
     # Configure email server
     try:
         obj_mail_node = Env.obj_config_manager.get_smpt_server_node()
@@ -373,6 +378,10 @@ def parse_options():
                      dest='dedup', default=False,
                      help='Set if duplicated cases should be removed '
                           'from test list.')
+    group.add_option('-d', '--debug', action='store',
+                     dest='str_debug', default="off",
+                     help='Set debug mode to "on" if puffer should stop execution at a ' \
+                          'failing case and won\'t execute any more cases. ')
     parser.add_option_group(group)
     
     # Device config

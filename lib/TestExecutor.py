@@ -917,7 +917,8 @@ class CTestExecutor(CLogger):
                         case_uuid)
                 str_line = str_line.replace('$CASEHYPERLINK', case_log_folder)
 
-                str_case_result = obj_xmlnode_case.find('result').text.lower()
+                if obj_xmlnode_case.find('result').text:
+                    str_case_result = obj_xmlnode_case.find('result').text.lower()
 
                 if str_case_result == 'pass':
                     int_pass_case_number += 1
