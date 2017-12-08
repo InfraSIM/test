@@ -16,7 +16,7 @@ from lib.Device import CDevice
 from idic.stack.BMC import CBMC
 from lib.SSH import CSSH
 from lib.Apps import with_connect
-from lib.Apps import update_option
+from lib.Apps import update_option, get_option
 
 
 class CNode(CDevice):
@@ -251,8 +251,16 @@ class CNode(CDevice):
             with sftp.open(remote_path, 'r') as remote_file:
                 conf = yaml.load(remote_file)
                 update_option(conf, payload, *key)
+            if str(payload) != str(get_option(conf, *key)):
+                self.log("WARNING", "Failed to update config option. After updating, option chain actually is: \n{}\n"\
+                         "Payload is: \n {}\n".format(get_option(conf, *key), payload))
             with sftp.open('tmp.yml', 'w') as remote_file:
                 yaml.dump(conf, remote_file, default_flow_style=False)
+            with sftp.open('tmp.yml', 'r') as remote_file:
+                conf = yaml.load(remote_file)
+                if payload != get_option(conf, *key):
+                    self.log("WARNING", "Failed to dump config file after updating config. After updating,"\
+                             "option chain actually is: \n{}\n Payload is: \n{}\n".format(get_option(conf, *key), payload))
 
         self.ssh.send_command_wait_string(str_command="echo {} | sudo -S mv tmp.yml {}".
                                           format(self.password, remote_path)+chr(13),
