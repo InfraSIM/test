@@ -30,7 +30,7 @@ import json
 import lib.Env as Env
 from lib.Logger import CLogger
 from idic.graph.Graph import CGraph
-from lib.Apps import is_valid_ip
+from lib.Apps import is_valid_ip, is_active_ip
 from idic.stack.Stack import CStack
 
 # Case result

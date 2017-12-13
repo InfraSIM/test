@@ -109,12 +109,17 @@ class T97939_idic_KCSTest(CBaseCase):
         # when there are mutiple nics in qemu config, not sure which one will be brought up, check
         # all one by one until we find the online ip.
 
+        qemu_macs.reverse()
+        for mac in qemu_macs[:]:
+            self.log("INFO", "Node {} qemu mac address: {}".format(node.get_name(), mac))
+
+        self.log("INFO", "Getting guest IP for node {} ...".format(node.get_name()))
         for mac in qemu_macs[:]:
             rsp = node.ssh.send_command_wait_string(str_command=r"arp -e | grep {} | awk '{{print $1}}'".
                                                     format(mac)+chr(13),
                                                     wait="~$")
             qemu_guest_ip = rsp.splitlines()[1]
-            if not is_valid_ip(qemu_guest_ip):
+            if not is_valid_ip(qemu_guest_ip) or not is_active_ip(qemu_guest_ip):
                 # If fail to get IP via arp, try to query via dhcp lease
                 try:
                     qemu_guest_ip = self.get_guest_ip(mac)
@@ -124,6 +129,9 @@ class T97939_idic_KCSTest(CBaseCase):
                 else:
                     self.log("INFO", "Guest IP is {} on node {}".format(qemu_guest_ip, node.get_name()))
                     break
+            else:
+                self.log("INFO", "Guest IP is {} on node {}".format(qemu_guest_ip, node.get_name()))
+
         if not qemu_macs:
             self.result(BLOCK, "Fail to get virtual compute IP address on {} {}".
                         format(node.get_name(), node.get_ip()))
@@ -133,8 +141,8 @@ class T97939_idic_KCSTest(CBaseCase):
                                           wait=["(yes/no)", "password"])
         match_index = node.ssh.get_match_index()
         if match_index == 0:
-            self.result(BLOCK, "Fail to ssh to guest on {} {}".
-                        format(node.get_name(), node.get_ip()))
+            self.result(BLOCK, "Fail to ssh to guest {} on {} {}".
+                        format(qemu_guest_ip, node.get_name(), node.get_ip()))
             return
         elif match_index == 1:
             node.ssh.send_command_wait_string(str_command="yes"+chr(13),
@@ -230,7 +238,7 @@ class T97939_idic_KCSTest(CBaseCase):
 
         time_start = time.time()
         guest_ip = ''
-        while time.time() - time_start < 300:
+        while time.time() - time_start < 60:
             try:
                 guest_ip = dhcp_query_ip(server=DHCP_SERVER,
                                          username=DHCP_USERNAME,
@@ -251,6 +259,6 @@ class T97939_idic_KCSTest(CBaseCase):
                 self.log('WARNING', 'Fail to query IP for MAC {}'.format(str_mac))
 
         if not guest_ip:
-            raise Exception('Fail to get IP for MAC {} in 300s'.format(str_mac))
+            raise Exception('Fail to get IP for MAC {} in 60s'.format(str_mac))
         else:
             return guest_ip
