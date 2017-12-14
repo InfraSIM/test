@@ -109,7 +109,6 @@ class T97939_idic_KCSTest(CBaseCase):
         # when there are mutiple nics in qemu config, not sure which one will be brought up, check
         # all one by one until we find the online ip.
 
-        qemu_macs.reverse()
         for mac in qemu_macs[:]:
             self.log("INFO", "Node {} qemu mac address: {}".format(node.get_name(), mac))
 
@@ -120,22 +119,20 @@ class T97939_idic_KCSTest(CBaseCase):
                                                     wait="~$")
             qemu_guest_ip = rsp.splitlines()[1]
             if not is_valid_ip(qemu_guest_ip) or not is_active_ip(qemu_guest_ip):
-                # If fail to get IP via arp, try to query via dhcp lease
-                try:
-                    qemu_guest_ip = self.get_guest_ip(mac)
-                except:
-                    qemu_macs.remove(mac)
-                    continue
-                else:
-                    self.log("INFO", "Guest IP is {} on node {}".format(qemu_guest_ip, node.get_name()))
-                    break
+                qemu_guest_ip = None
             else:
                 self.log("INFO", "Guest IP is {} on node {}".format(qemu_guest_ip, node.get_name()))
 
-        if not qemu_macs:
-            self.result(BLOCK, "Fail to get virtual compute IP address on {} {}".
-                        format(node.get_name(), node.get_ip()))
-            return
+        # If fail to get IP via arp, try to query via dhcp lease
+        if not qemu_guest_ip:
+            qemu_guest_ip = self.get_guest_ip(qemu_macs)
+            if qemu_guest_ip:
+                self.log("INFO", "Guest IP is {} on node {}".format(qemu_guest_ip, node.get_name()))
+
+            else:
+                self.result(BLOCK, "Fail to get virtual compute IP address on {} {}".
+                            format(node.get_name(), node.get_ip()))
+                return
         # SSH to guest
         node.ssh.send_command_wait_string(str_command="ssh root@{}".format(qemu_guest_ip)+chr(13),
                                           wait=["(yes/no)", "password"])
@@ -229,36 +226,36 @@ class T97939_idic_KCSTest(CBaseCase):
             self.result(FAIL, 'IPMI command via kcs on node {} fail: ipmitool sel list'.
                         format(node.get_name()))
 
-    def get_guest_ip(self, str_mac):
+    def get_guest_ip(self, macs):
         DHCP_SERVER = self.data["DHCP_SERVER"]
         DHCP_USERNAME = self.data["DHCP_USERNAME"]
         DHCP_PASSWORD = self.data["DHCP_PASSWORD"]
 
-        self.log('INFO', 'Query IP for MAC {} from DHCP server'.format(str_mac))
+        self.log('INFO', 'Query IP for MAC {} from DHCP server'.format(macs))
 
         time_start = time.time()
-        guest_ip = ''
-        while time.time() - time_start < 60:
-            try:
-                guest_ip = dhcp_query_ip(server=DHCP_SERVER,
-                                         username=DHCP_USERNAME,
-                                         password=DHCP_PASSWORD,
-                                         mac=str_mac)
-                rsp = os.system('ping -c 1 {}'.format(guest_ip))
-                if rsp != 0:
-                    self.log('INFO', 'Find an IP {} lease for MAC {}, but this IP is not online'.
-                             format(guest_ip, str_mac))
-                    guest_ip = ''
-                    time.sleep(30)
-                    continue
-                else:
-                    self.log('INFO', 'Find an IP {} lease for MAC {}, this IP works'.
-                             format(guest_ip, str_mac))
-                    break
-            except:
-                self.log('WARNING', 'Fail to query IP for MAC {}'.format(str_mac))
+        elapse_time = 60
+        guest_ip = None
+        while time.time() - time_start < elapse_time:
+            for str_mac in macs:
+                try:
+                    guest_ip = dhcp_query_ip(server=DHCP_SERVER,
+                                             username=DHCP_USERNAME,
+                                             password=DHCP_PASSWORD,
+                                             mac=str_mac)
+                    rsp = os.system('ping -c 1 {}'.format(guest_ip))
+                    if rsp != 0:
+                        self.log('INFO', 'Find an IP {} lease for MAC {}, but this IP is not online'.
+                                 format(guest_ip, str_mac))
+                        guest_ip = None
+                    else:
+                        self.log('INFO', 'Find an IP {} lease for MAC {}, this IP works'.
+                                 format(guest_ip, str_mac))
+                        return guest_ip
+                except:
+                    self.log('WARNING', 'Fail to query IP for MAC {}'.format(str_mac))
+            time.sleep(30)
 
         if not guest_ip:
-            raise Exception('Fail to get IP for MAC {} in 60s'.format(str_mac))
-        else:
-            return guest_ip
+            self.log('WARNING', 'Fail to get IP for MAC {} in {}s'.format(str_mac, elapse_time))
+            return
