@@ -3,6 +3,7 @@
 Copyright @ 2015 EMC Corporation All Rights Reserved
 *********************************************************
 '''
+import os
 import types
 import re
 import math
@@ -359,6 +360,19 @@ def is_valid_ip(ip):
     else:
         return False
 
+def is_active_ip(ip):
+    '''
+    [Author  ]: June.Zhou@emc.com
+    [Function]: This function is to validate if IP is active
+    [Input   ]: ip - the IP to validate
+    [Output  ]: True - IP is active
+                False - IP is inactive
+    '''
+    rsp = os.system("ping -c 1 {}".format(ip))
+    if rsp != 0:
+        return False
+
+    return True
 
 def ip_str(ip):
     '''
@@ -594,7 +608,7 @@ def dhcp_query_ip(server, username, password, mac):
     if not conn.connect():
         raise Exception('Fail to connect to server {} to query IP'.format(server))
 
-    rsp = conn.remote_shell('grep -A 2 -B 7 "{}" /var/lib/dhcp/dhcpd.leases | grep "lease" | tail -n 1'.format(mac))
+    rsp = conn.remote_shell('grep -A 2 -B 7 "{}" /var/lib/dhcp/dhcpd.leases | tail -n 10'.format(mac))
     if rsp['exitcode'] != 0:
         conn.disconnect()
         raise Exception('Fail to get response from server {} to query IP\n{}'.
@@ -602,6 +616,10 @@ def dhcp_query_ip(server, username, password, mac):
     if not rsp['stdout']:
         conn.disconnect()
         raise Exception('Find no DHCP lease information for MAC: {}'.format(mac))
+
+    if "binding state active" not in rsp['stdout']:
+        conn.disconnect()
+        raise Exception('Find no active DHCP lease information for MAC: {}'.format(mac))
 
     p_ip = r'(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})'
     p = re.search(p_ip, rsp['stdout'])
