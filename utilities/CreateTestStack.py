@@ -253,10 +253,17 @@ def start_node():
     global ssh_password
 
     cmd = "ansible {} -i {} -m shell -a \"echo {} | " \
+          "setsid sudo -S infrasim node destroy\"".\
+        format(full_group, inventory_path, ssh_password)
+    run_command(cmd)
+    time.sleep(3)
+
+    cmd = "ansible {} -i {} -m shell -a \"echo {} | " \
           "setsid sudo -S infrasim node start\"".\
         format(full_group, inventory_path, ssh_password)
     _, rsp = run_command(cmd)
     print rsp
+
     # Verify operations on all nodes are successful
     for hosts_of_this_kind in hosts.values():
         for host in hosts_of_this_kind:
