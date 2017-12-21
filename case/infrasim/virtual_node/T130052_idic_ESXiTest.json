@@ -5,6 +5,15 @@
         "DHCP_PASSWORD":"cisolution",
         "disk_image": "esxi6p3-1.qcow2",
         "host_username": "root",
-        "host_password": "Passw0rd!"
+        "host_password": "Passw0rd!",
+        "dell_r730": "PowerEdge R730",
+        "dell_r730xd": "R730 Base",
+        "dell_c6320": "PowerEdge C6320",
+        "dell_r630": "Dell Storage Cntlr",
+        "s2600kp": "S2600KP",
+        "s2600tp": "S2600TP",
+        "s2600wtt": "S2600WTT",
+        "quanta_t41": "QuantaPlex T41S",
+        "quanta_d51": "D51"
     }
 ]
