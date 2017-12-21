@@ -729,10 +729,12 @@ def add_option(config, payload, *args):
     {
         "a": {"b": 1}
     }
-    add_option(config, 2, "a", "c") updates config to {"a": {"b": 2, "c": 2}}
+    payload is:
+    {   "d": 3}
+    add_option(config, payload, "a", "c") updates config to {"a": {"b": 1, "c": {"d": 3}}}
     """
     target = config
-    for i in range(len(args) - 1):
-        if not target.get(args[i], None):
-            target[args[i]] = ""
-    target[args[-1]] = payload
+    for i in range(len(args)-1):
+        target = target[args[i]]
+        if not target.get(args[i+1], None):
+            target[args[i+1]] = payload
