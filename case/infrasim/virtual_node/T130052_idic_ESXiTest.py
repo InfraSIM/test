@@ -1,3 +1,4 @@
+import re
 from case.CBaseCase import *
 from lib.Apps import dhcp_query_ip, md5
 import gevent
@@ -115,22 +116,41 @@ class T130052_idic_ESXiTest(CBaseCase):
                         format(str_node_name, node.get_ip()))
             return
         qemu_config = node.get_instance_config(str_node_name)
-        qemu_first_mac = qemu_config["compute"]["networks"][0]["mac"].lower()
+        qemu_macs = []
+        for i in range(0, len(qemu_config["compute"]["networks"])):
+            mac = qemu_config["compute"]["networks"][i].get("mac", None)
+            if mac:
+                qemu_macs.append(mac.lower())
+
         # Get qemu IP
-        
-        rsp = node.ssh.send_command_wait_string(str_command=r"arp -e | grep {} | awk '{{print $1}}'".
-                                                format(qemu_first_mac)+chr(13),
-                                                wait="~$")
-        qemu_first_ip = rsp.splitlines()[1]
-        if not is_valid_ip(qemu_first_ip):
-            # If fail to get IP via arp, try to query via dhcp lease
-            try:
-                qemu_first_ip = self.get_guest_ip(qemu_first_mac)
-            except:
+        # Since in esxi image's network config, it has only one nic up with one bridge connected,
+        # when there are mutiple nics in qemu config, not sure which one will be brought up, check
+        # all one by one until we find the online ip.
+
+        for mac in qemu_macs[:]:
+            self.log("INFO", "Node {} qemu mac address: {}".format(node.get_name(), mac))
+
+        self.log("INFO", "Getting guest IP for node {} ...".format(node.get_name()))
+        for mac in qemu_macs[:]:
+            rsp = node.ssh.send_command_wait_string(str_command=r"arp -e | grep {} | awk '{{print $1}}'".
+                                                    format(mac)+chr(13),
+                                                    wait="~$")
+            qemu_guest_ip = rsp.splitlines()[1]
+            if not is_valid_ip(qemu_guest_ip) or not is_active_ip(qemu_guest_ip):
+                qemu_guest_ip = None
+            else:
+                self.log("INFO", "Guest IP is {} on node {}".format(qemu_guest_ip, node.get_name()))
+
+        # If fail to get IP via arp, try to query via dhcp lease
+        if not qemu_guest_ip:
+            qemu_guest_ip = self.get_guest_ip(qemu_macs)
+            if qemu_guest_ip:
+                self.log("INFO", "Guest IP is {} on node {}".format(qemu_guest_ip, node.get_name()))
+
+            else:
                 self.result(BLOCK, "Fail to get virtual compute IP address on {} {}".
                             format(node.get_name(), node.get_ip()))
                 return
-        self.log("INFO", "Guest IP is {} on node {}".format(qemu_first_ip, node.get_name()))
 
         # SSH to guest, retry for 30 times
         times = 30
@@ -138,10 +158,10 @@ class T130052_idic_ESXiTest(CBaseCase):
         for i in range(times):
             # Need to remove relative key to avoid key change alarm
             node.ssh.send_command_wait_string(str_command="ssh-keygen -f /home/infrasim/.ssh/known_hosts -R {}".  \
-               format(qemu_first_ip)+chr(13), int_time_out = 10, wait="~$")
+               format(qemu_guest_ip)+chr(13), int_time_out = 10, wait="~$")
 
-            node.ssh.send_command_wait_string(str_command="ssh root@{}".format(qemu_first_ip)+chr(13), 
-                wait=["(yes/no)", "Password"])
+            node.ssh.send_command_wait_string(str_command="ssh root@{}".format(qemu_guest_ip)+chr(13),
+                                              wait=["(yes/no)", "Password"])
 
             match_index = node.ssh.get_match_index()
 
@@ -168,7 +188,8 @@ class T130052_idic_ESXiTest(CBaseCase):
     def esx_test_ipmi_fru(self, node):
         rsp = node.ssh.send_command_wait_string(str_command='esxcli hardware ipmi fru list'+chr(13),
                                                 wait=PROMPT_GUEST)
-        if 'Part Name: PowerEdge R730' not in rsp:
+        node_name = re.findall(r"(\w+)_\d+\.\d+\.\d+\.\d+", node.get_name())
+        if 'Part Name: {}'.format(self.data[node_name[0]]) not in rsp:
             self.result(FAIL, 'Node {} host get "esxcli hardware ipmi fru list" result on ESXi is unexpected, rsp\n{}'.
                         format(node.get_name(), json.dumps(rsp, indent=4)))
         self.log('INFO', 'rsp: \n{}'.format(rsp))
@@ -181,35 +202,36 @@ class T130052_idic_ESXiTest(CBaseCase):
                         format(node.get_name(), json.dumps(rsp, indent=4)))
         self.log('INFO', 'rsp: \n{}'.format(rsp))
 
-    def get_guest_ip(self, str_mac):
+    def get_guest_ip(self, macs):
         DHCP_SERVER = self.data["DHCP_SERVER"]
         DHCP_USERNAME = self.data["DHCP_USERNAME"]
         DHCP_PASSWORD = self.data["DHCP_PASSWORD"]
 
-        self.log('INFO', 'Query IP for MAC {} from DHCP server'.format(str_mac))
+        self.log('INFO', 'Query IP for MAC {} from DHCP server'.format(macs))
 
         time_start = time.time()
-        guest_ip = ''
-        while time.time() - time_start < 300:
-            try:
-                guest_ip = dhcp_query_ip(server=DHCP_SERVER,
-                                         username=DHCP_USERNAME,
-                                         password=DHCP_PASSWORD,
-                                         mac=str_mac)
-                rsp = os.system('ping -c 1 {}'.format(guest_ip))
-                if rsp != 0:
-                    self.log('INFO', 'Find an IP {} lease for MAC {}, but this IP is not online'.
-                             format(guest_ip, str_mac))
-                    time.sleep(30)
-                    continue
-                else:
-                    self.log('INFO', 'Find an IP {} lease for MAC {}, this IP works'.
-                             format(guest_ip, str_mac))
-                    break
-            except:
-                self.log('WARNING', 'Fail to query IP for MAC {}'.format(str_mac))
+        elapse_time = 1200
+        guest_ip = None
+        while time.time() - time_start < elapse_time:
+            for str_mac in macs:
+                try:
+                    guest_ip = dhcp_query_ip(server=DHCP_SERVER,
+                                             username=DHCP_USERNAME,
+                                             password=DHCP_PASSWORD,
+                                             mac=str_mac)
+                    rsp = os.system('ping -c 1 {}'.format(guest_ip))
+                    if rsp != 0:
+                        self.log('INFO', 'Find an IP {} lease for MAC {}, but this IP is not online'.
+                                 format(guest_ip, str_mac))
+                        guest_ip = None
+                    else:
+                        self.log('INFO', 'Find an IP {} lease for MAC {}, this IP works'.
+                                 format(guest_ip, str_mac))
+                        return guest_ip
+                except:
+                    self.log('WARNING', 'Fail to query IP for MAC {}'.format(str_mac))
+            time.sleep(30)
 
         if not guest_ip:
-            raise Exception('Fail to get IP for MAC {} in 300s'.format(str_mac))
-        else:
-            return guest_ip
+            self.log('WARNING', 'Fail to get IP for MAC {} in {}s'.format(str_mac, elapse_time))
+            return
