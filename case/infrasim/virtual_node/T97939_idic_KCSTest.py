@@ -199,18 +199,35 @@ class T97939_idic_KCSTest(CBaseCase):
                         format(node.get_name(), node_lan_channel))
 
     def kcs_test_sensor_list(self, node):
-
-        rsp = node.ssh.send_command_wait_string(str_command='ipmitool sensor list'+chr(13),
-                                                wait=PROMPT_GUEST)
-        self.log('INFO', 'rsp: \n{}'.format(rsp))
-
+        lan_result_str = ''
+        local_result_str = ''
+        lan_ret, lan_rsp = node.get_bmc().ipmi.ipmitool_standard_cmd('sensor list')
+        self.log('INFO', 'ret: {}'.format(lan_ret))
+        self.log('INFO', 'rsp: \n{}'.format(lan_rsp))
+        if lan_ret != 0:
+            self.result(FAIL, 'Node {} fail to check BMC sensor list, '
+                              'ipmitool return: {}, expect: 0, rsp: \n{}'.
+                        format(node.get_name(), lan_ret, lan_rsp))
         # To match "degree" and "discrete".
         # Any system should show both word in sensor list info if sensor list display normally.
-        is_match_discrete = re.search(r'discrete', format(rsp))
-        is_match_degress = re.search(r'degree', format(rsp))
+        is_match_discrete = re.search(r'discrete', format(lan_rsp))
+        is_match_degress = re.search(r'degree', format(lan_rsp))
         if is_match_discrete is None or is_match_degress is None:
-            self.result(FAIL, 'IPMI command via kcs on node {} fail: ipmitool sensor list'.
-                        format(node.get_name()))
+            lan_result_str = 'IPMI command via lanplus on node {} fail: \
+                             ipmitool -I lanplus -H {} -U admin -P admin sensor list \n'.\
+                             format(node.get_name(),node.get_bmc().get_ip())
+
+        local_rsp = node.ssh.send_command_wait_string(str_command='ipmitool sensor list'+chr(13),
+                                                wait=PROMPT_GUEST, int_time_out=30)
+        self.log('INFO', 'rsp: \n{}'.format(local_rsp))
+
+        is_match_discrete = re.search(r'discrete', format(local_rsp))
+        is_match_degress = re.search(r'degree', format(local_rsp))
+        if is_match_discrete is None or is_match_degress is None:
+            local_result_str = 'IPMI command via kcs on node {} fail: ipmitool sensor list \n'.format(node.get_name())
+
+        if lan_result_str or local_result_str:
+            self.result(FAIL, lan_result_str + local_result_str)
 
     def kcs_test_sel_list(self, node):
 
@@ -234,7 +251,7 @@ class T97939_idic_KCSTest(CBaseCase):
         self.log('INFO', 'Query IP for MAC {} from DHCP server'.format(macs))
 
         time_start = time.time()
-        elapse_time = 60
+        elapse_time = 120
         guest_ip = None
         while time.time() - time_start < elapse_time:
             for str_mac in macs:
