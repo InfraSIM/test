@@ -15,7 +15,7 @@ sources_list = "This is a Xenial sources.list you can use:\n" \
                "deb http://security.ubuntu.com/ubuntu xenial-security multiverse\n"
 
 
-class T0000_rackhd_OSInstall(CBaseCase):
+class T0003_rackhd_OSInstallCoreOS(CBaseCase):
     '''
     [Purpose ]: Trigger RackHD 2.0 workflow to install OS for all nodes under management.
     [Author  ]: forrest.gu@emc.com
@@ -27,16 +27,13 @@ class T0000_rackhd_OSInstall(CBaseCase):
         CBaseCase.__init__(self, self.__class__.__name__)
 
     def config(self):
-        # clean up environment: 1. call CBaseCase.config to get monorail object. 
-        #                       2. stop infrasim, erase rackhd database and start infrasim.
-        # To do: Case specific config
         CBaseCase.config(self)
         ssh = self.monorail.obj_ssh_agent
-        rsp = ssh.remote_shell("bash +x clean_up.sh ip.txt")
 
         # start testing normally from here
-        #CBaseCase._config(self)
         token = self.monorail.set_rackhd_rest_auth()
+
+        # To do: Case specific config
 
         # Check if os is mounted
         rsp = ssh.remote_shell("mount")
@@ -101,8 +98,8 @@ class T0000_rackhd_OSInstall(CBaseCase):
                 time.sleep(interval)
                 continue
 
-        interval = 6
-        retry = 30
+        interval = 60
+        retry = 3
         for i in range(retry):
             # if no node has active workflow, break the loop
             count = len(node_os_install_dic)
@@ -160,7 +157,8 @@ class T0000_rackhd_OSInstall(CBaseCase):
                 node.install_os(self.data["os_name"])
                 install_time_statistics_dic[node_id] = {"start": time.time()}
             except Exception, e:
-                self.log("WARNING", "Exception in loading or posting OS installation workflow on node ID: {}. \n Exception message: {}".format(node_id, e.message))
+                self.log("WARNING", "Exception in loading or posting OS installation workflow on node ID: {}. \
+                         \n Exception message: {}".format(node_id, e.message))
                 node_fail_post_os_install_workflow_list.append(node_id)
             self.log(
                 'INFO', 'Installation on node {} starts, please open VNC to check'.format(node_id))
@@ -179,7 +177,7 @@ class T0000_rackhd_OSInstall(CBaseCase):
             del(node_os_install_dic[node_id])
 
         # Verify os install succeeded
-        interval = 30
+        interval = 60
         retry = self.data["timeout"] * 60 / interval
         time.time()
         print("Retry: {}".format(retry))
@@ -198,7 +196,7 @@ class T0000_rackhd_OSInstall(CBaseCase):
                                  restart infrasim now ...".
                                  format(node_workflow_list[node_id], node_id, self.data["os_name"], elapse_run_time))
                         ssh = self.monorail.obj_ssh_agent
-                        ssh.remote_shell("ipmitool -I lanplus -U admin -P admin -H {} chassis power cycle".format(node_bmc_ip))
+                        ssh.remote_shell("ipmitool -I lanplus -U admin -P admin -H {} chassis power cycle".format(node_bmc_ip[node.id]))
 
                     if i == retry - 1:
                         node_fail_os_install_list.append(node)
@@ -268,4 +266,6 @@ class T0000_rackhd_OSInstall(CBaseCase):
 
     def deconfig(self):
         # To do: Case specific deconfig
+        ssh = self.monorail.obj_ssh_agent
+	rsp = ssh.remote_shell("bash +x clean_up.sh ip.txt")
         CBaseCase.deconfig(self)
