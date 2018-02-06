@@ -16,7 +16,7 @@ from lib.Device import CDevice
 from idic.stack.BMC import CBMC
 from lib.SSH import CSSH
 from lib.Apps import with_connect
-from lib.Apps import update_option, get_option
+from lib.Apps import update_option, get_option, strip_color_code
 
 
 class CNode(CDevice):
@@ -199,11 +199,12 @@ class CNode(CDevice):
         :return:
         '''
         self.log("INFO", "Get runtime instance name from node {}...".format(self.get_ip()))
-        p_name = re.compile(r"] (.*)-node is running")
+        p_name = re.compile(r'] (.*)-node is running')
 
         rsp = self.ssh.send_command_wait_string(str_command='echo {} | sudo -S infrasim node status {}'.
                                                 format(self.password, chr(13)),
                                                 wait='~$')
+        rsp = strip_color_code(rsp)
 
         list_name = list(set(p_name.findall(rsp)))
         active_num = len(list_name)
