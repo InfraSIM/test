@@ -6,7 +6,7 @@ import urllib
 import re
 import gevent
 
-PROMPT_GUEST = "root@vNode:~$"
+PROMPT_GUEST = "infrasim@infrasim:~$"
 
 class T97939_idic_KCSTest(CBaseCase):
     '''
@@ -22,22 +22,6 @@ class T97939_idic_KCSTest(CBaseCase):
         CBaseCase.config(self)
         self.enable_node_ssh()
 
-        MD5_KCS_IMG = ""
-        if not os.path.exists("image/kcs.img.md5"):
-            self.log('INFO', "Missing kcs.img.md5, download now...")
-            urllib.urlretrieve("https://github.com/InfraSIM/test/raw/master/image/kcs.img.md5", "image/kcs.img.md5")
-        with open("image/kcs.img.md5", "r") as f:
-            MD5_KCS_IMG = f.read().strip()
-        if not os.path.exists("image/kcs.img"):
-            self.log('INFO', "No kcs.img for test, download now...")
-            urllib.urlretrieve("https://github.com/InfraSIM/test/raw/master/image/kcs.img", "image/kcs.img")
-        elif md5("image/kcs.img") != MD5_KCS_IMG:
-            self.log('WARNING', "kcs.img fail on md5 sum, delete and download now...")
-            os.remove("image/kcs.img")
-            urllib.urlretrieve("https://github.com/InfraSIM/test/raw/master/image/kcs.img", "image/kcs.img")
-
-        else:
-            self.log("INFO", "kcs.img is correct for test")
 
     def test(self):
         gevent.joinall([gevent.spawn(self.boot_to_disk, obj_node)
@@ -50,17 +34,7 @@ class T97939_idic_KCSTest(CBaseCase):
         CBaseCase.deconfig(self)
 
     def boot_to_disk(self, node):
-        MD5_KCS_IMG = ""
-        dst_path = node.send_file("image/kcs.img", "kcs.img")
-        rsp = node.ssh.send_command_wait_string(str_command=r"md5sum /home/infrasim/kcs.img"+chr(13), wait="~$")
-        with open("image/kcs.img.md5", "r") as f:
-                MD5_KCS_IMG = f.read().strip()
-        if MD5_KCS_IMG in rsp:
-            self.log("INFO", "Img is correct for test on {}.".format(node.get_ip()))
-        else:
-            self.result(BLOCK, "Failed to verify kcs.img on {}".
-                        format(node.get_ip()))
-            return
+        dst_path = "/mnt/ubuntu_16.04.3.img"
         str_node_name = node.retry_get_instance_name()
         if str_node_name == '':
             self.result(BLOCK, "Failed to start infrasim instance on {}".
@@ -84,7 +58,7 @@ class T97939_idic_KCSTest(CBaseCase):
                         format(str_node_name, node.get_ip()))
             return
 
-        # Reboot to kcs.img
+        # Reboot to ubuntu_16.04.3.img
         self.log("INFO", "Power cycle guest to boot to disk on {}...".format(node.get_name()))
         ret, rsp = node.get_bmc().ipmi.ipmitool_standard_cmd("chassis power cycle")
         if ret != 0:
@@ -133,8 +107,9 @@ class T97939_idic_KCSTest(CBaseCase):
                 self.result(BLOCK, "Fail to get virtual compute IP address on {} {}".
                             format(node.get_name(), node.get_ip()))
                 return
+        time.sleep(4)
         # SSH to guest
-        node.ssh.send_command_wait_string(str_command="ssh root@{}".format(qemu_guest_ip)+chr(13),
+        node.ssh.send_command_wait_string(str_command="ssh infrasim@{}".format(qemu_guest_ip)+chr(13),
                                           wait=["(yes/no)", "password"])
         match_index = node.ssh.get_match_index()
         if match_index == 0:
@@ -144,23 +119,24 @@ class T97939_idic_KCSTest(CBaseCase):
         elif match_index == 1:
             node.ssh.send_command_wait_string(str_command="yes"+chr(13),
                                               wait="password")
-        node.ssh.send_command_wait_string(str_command="root"+chr(13),
+        node.ssh.send_command_wait_string(str_command="infrasim"+chr(13),
                                           wait=PROMPT_GUEST)
 
+        time.sleep(4)
         self.kcs_test_fru_print(node)
         self.kcs_test_lan_print(node)
         self.kcs_test_sensor_list(node)
         self.kcs_test_sel_list(node)
 
     def kcs_test_fru_print(self, node):
-        rsp = node.ssh.send_command_wait_string(str_command='ipmitool fru print'+chr(13),
+        rsp = node.ssh.send_command_wait_string(str_command='sudo ipmitool fru print'+chr(13),
                                                 wait=PROMPT_GUEST)
         if 'Product Name' not in rsp:
-            self.result(FAIL, 'Node {} host get "frp print" result on KCS is unexpected, rsp\n{}'.
+            self.result(FAIL, 'Node {} host get "fru print" result on KCS is unexpected, rsp\n{}'.
                         format(node.get_name(), json.dumps(rsp, indent=4)))
         self.log('INFO', 'rsp: \n{}'.format(rsp))
 
-        rsp = node.ssh.send_command_wait_string(str_command='ipmitool fru print 0'+chr(13),
+        rsp = node.ssh.send_command_wait_string(str_command='sudo ipmitool fru print 0'+chr(13),
                                                 wait=PROMPT_GUEST)
         if 'Product Name' not in rsp:
             self.result(FAIL, 'Node {} host get "frp print 0" result on KCS is unexpected\n{}'.
@@ -189,7 +165,7 @@ class T97939_idic_KCSTest(CBaseCase):
                         .format(e, e, self.__class__.__name__))
             return
 
-        rsp = node.ssh.send_command_wait_string(str_command='ipmitool lan print {}'.
+        rsp = node.ssh.send_command_wait_string(str_command='sudo ipmitool lan print {}'.
                                                 format(node_lan_channel)+chr(13),
                                                 wait=PROMPT_GUEST)
         self.log('INFO', 'rsp: \n{}'.format(rsp))
@@ -217,7 +193,7 @@ class T97939_idic_KCSTest(CBaseCase):
                              ipmitool -I lanplus -H {} -U admin -P admin sensor list \n'.\
                              format(node.get_name(),node.get_bmc().get_ip())
 
-        local_rsp = node.ssh.send_command_wait_string(str_command='ipmitool sensor list'+chr(13),
+        local_rsp = node.ssh.send_command_wait_string(str_command='sudo ipmitool sensor list'+chr(13),
                                                 wait=PROMPT_GUEST, int_time_out=30)
         self.log('INFO', 'rsp: \n{}'.format(local_rsp))
 
@@ -231,10 +207,10 @@ class T97939_idic_KCSTest(CBaseCase):
 
     def kcs_test_sel_list(self, node):
 
-        rsp = node.ssh.send_command_wait_string(str_command='ipmitool sel clear'+chr(13),
+        rsp = node.ssh.send_command_wait_string(str_command='sudo ipmitool sel clear'+chr(13),
                                                 wait=PROMPT_GUEST)
 
-        rsp = node.ssh.send_command_wait_string(str_command='ipmitool sel list'+chr(13),
+        rsp = node.ssh.send_command_wait_string(str_command='sudo ipmitool sel list'+chr(13),
                                                 wait=PROMPT_GUEST)
         self.log('INFO', 'rsp: \n{}'.format(rsp))
 
@@ -251,7 +227,7 @@ class T97939_idic_KCSTest(CBaseCase):
         self.log('INFO', 'Query IP for MAC {} from DHCP server'.format(macs))
 
         time_start = time.time()
-        elapse_time = 120
+        elapse_time = 300
         guest_ip = None
         while time.time() - time_start < elapse_time:
             for str_mac in macs:
