@@ -228,6 +228,7 @@ class T0007_rackhd_OSInstallSUSE(CBaseCase):
             str_pend = ''
             str_inactive = ''
             str_post_fail = ''
+            str_discover_fail = ''
             if node_fail_os_install_list:
                 err_msgs = []
                 for node in node_fail_os_install_list:

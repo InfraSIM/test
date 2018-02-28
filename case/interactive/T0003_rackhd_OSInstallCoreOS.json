@@ -11,7 +11,7 @@
         "//":     "PhotonOS",
         "//": "Refer to: https://rackhd.readthedocs.io/en/latest/rackhd/install_os.html",
         "//": "timeout is in minute, if the OS doesn't finish booting in given time.",
-        "node_count": 2,
+        "node_count": 4,
         "os_name": "CoreOS",
         "timeout": 120
     }
