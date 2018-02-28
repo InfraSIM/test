@@ -14,6 +14,8 @@ Vagrant.configure("2") do |config|
       subconfig.ssh.username = 'infrasim'
       subconfig.ssh.password = 'infrasim'
       subconfig.ssh.insert_key = true
+      subconfig.vm.synced_folder "../../../image", "/mnt", disabled: false
+      subconfig.vm.synced_folder ".", "/vagrant", disabled: true
       subconfig.vm.provision "shell", inline: $script, privileged: false
     end
 
