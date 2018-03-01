@@ -90,7 +90,7 @@ class T97939_idic_KCSTest(CBaseCase):
         for mac in qemu_macs[:]:
             rsp = node.ssh.send_command_wait_string(str_command=r"arp -e | grep {} | awk '{{print $1}}'".
                                                     format(mac)+chr(13),
-                                                    wait="~$")
+                                                    wait="~$", int_time_out=100, b_with_buff=False)
             qemu_guest_ip = rsp.splitlines()[1]
             if not is_valid_ip(qemu_guest_ip) or not is_active_ip(qemu_guest_ip):
                 qemu_guest_ip = None
@@ -109,8 +109,8 @@ class T97939_idic_KCSTest(CBaseCase):
                 return
         time.sleep(4)
         # SSH to guest
-        node.ssh.send_command_wait_string(str_command="ssh infrasim@{}".format(qemu_guest_ip)+chr(13),
-                                          wait=["(yes/no)", "password"])
+        print node.ssh.send_command_wait_string(str_command="ssh infrasim@{}".format(qemu_guest_ip)+chr(13),
+                                          wait=["(yes/no)", "password"], int_time_out=100, b_with_buff=False)
         match_index = node.ssh.get_match_index()
         if match_index == 0:
             self.result(BLOCK, "Fail to ssh to guest {} on {} {}".
@@ -118,9 +118,9 @@ class T97939_idic_KCSTest(CBaseCase):
             return
         elif match_index == 1:
             node.ssh.send_command_wait_string(str_command="yes"+chr(13),
-                                              wait="password")
+                                              wait="password", int_time_out=100, b_with_buff=False)
         node.ssh.send_command_wait_string(str_command="infrasim"+chr(13),
-                                          wait=PROMPT_GUEST)
+                                          wait=PROMPT_GUEST, int_time_out=100, b_with_buff=False)
 
         time.sleep(4)
         self.kcs_test_fru_print(node)
@@ -130,14 +130,14 @@ class T97939_idic_KCSTest(CBaseCase):
 
     def kcs_test_fru_print(self, node):
         rsp = node.ssh.send_command_wait_string(str_command='sudo ipmitool fru print'+chr(13),
-                                                wait=PROMPT_GUEST)
+                                                wait=PROMPT_GUEST, int_time_out=100, b_with_buff=False)
         if 'Product Name' not in rsp:
             self.result(FAIL, 'Node {} host get "fru print" result on KCS is unexpected, rsp\n{}'.
                         format(node.get_name(), json.dumps(rsp, indent=4)))
         self.log('INFO', 'rsp: \n{}'.format(rsp))
 
         rsp = node.ssh.send_command_wait_string(str_command='sudo ipmitool fru print 0'+chr(13),
-                                                wait=PROMPT_GUEST)
+                                                wait=PROMPT_GUEST, int_time_out=100, b_with_buff=False)
         if 'Product Name' not in rsp:
             self.result(FAIL, 'Node {} host get "frp print 0" result on KCS is unexpected\n{}'.
                         format(node.get_name(), json.dumps(rsp, indent=4)))
@@ -167,7 +167,7 @@ class T97939_idic_KCSTest(CBaseCase):
 
         rsp = node.ssh.send_command_wait_string(str_command='sudo ipmitool lan print {}'.
                                                 format(node_lan_channel)+chr(13),
-                                                wait=PROMPT_GUEST)
+                                                wait=PROMPT_GUEST, int_time_out=100, b_with_buff=False)
         self.log('INFO', 'rsp: \n{}'.format(rsp))
 
         if "IP Address" not in rsp:
@@ -194,7 +194,7 @@ class T97939_idic_KCSTest(CBaseCase):
                              format(node.get_name(),node.get_bmc().get_ip())
 
         local_rsp = node.ssh.send_command_wait_string(str_command='sudo ipmitool sensor list'+chr(13),
-                                                wait=PROMPT_GUEST, int_time_out=30)
+                                                wait=PROMPT_GUEST, int_time_out=100, b_with_buff=False)
         self.log('INFO', 'rsp: \n{}'.format(local_rsp))
 
         is_match_discrete = re.search(r'discrete', format(local_rsp))
@@ -208,10 +208,10 @@ class T97939_idic_KCSTest(CBaseCase):
     def kcs_test_sel_list(self, node):
 
         rsp = node.ssh.send_command_wait_string(str_command='sudo ipmitool sel clear'+chr(13),
-                                                wait=PROMPT_GUEST)
+                                                wait=PROMPT_GUEST, int_time_out=100, b_with_buff=False)
 
         rsp = node.ssh.send_command_wait_string(str_command='sudo ipmitool sel list'+chr(13),
-                                                wait=PROMPT_GUEST)
+                                                wait=PROMPT_GUEST, int_time_out=100, b_with_buff=False)
         self.log('INFO', 'rsp: \n{}'.format(rsp))
 
         # To match "Log area reset/cleared".
