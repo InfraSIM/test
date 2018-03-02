@@ -26,19 +26,19 @@ class T46141_idic_IPMISIMHistoryAccessible(CBaseCase):
 
                 ipmi_console.send_command_wait_string(str_command='help'+chr(13),
                                                       wait='IPMI_SIM',
-                                                      int_time_out=10,
+                                                      int_time_out=30,
                                                       b_with_buff=False)
                 ipmi_console.send_command_wait_string(str_command='help sensor'+chr(13),
                                                       wait='IPMI_SIM',
-                                                      int_time_out=10,
+                                                      int_time_out=30,
                                                       b_with_buff=False)
                 ipmi_console.send_command_wait_string(str_command='sensor'+chr(13),
                                                       wait='IPMI_SIM',
-                                                      int_time_out=10,
+                                                      int_time_out=30,
                                                       b_with_buff=False)
                 str_rsp = ipmi_console.send_command_wait_string(str_command='history'+chr(13),
                                                                 wait='IPMI_SIM',
-                                                                int_time_out=10,
+                                                                int_time_out=30,
                                                                 b_with_buff=False)
 
                 count = 0
