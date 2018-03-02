@@ -71,7 +71,7 @@ class T46139_idic_IPMISIMSensorAccessible(CBaseCase):
                 else:
                     str_rsp = ipmi_console.send_command_wait_string(str_command='sensor info'+chr(13),
                                                                     wait='degrees C',
-                                                                    int_time_out=10,
+                                                                    int_time_out=30,
                                                                     b_with_buff=False)
                     self.log('INFO', 'Sensor info of node: {}'.format(str_rsp))
                     if not str_rsp:
@@ -84,7 +84,7 @@ class T46139_idic_IPMISIMSensorAccessible(CBaseCase):
                     # Clear previous ssh stream
                     str_rsp = ipmi_console.send_command_wait_string(str_command=chr(13),
                                                                     wait='IPMI_SIM>',
-                                                                    int_time_out=10,
+                                                                    int_time_out=30,
                                                                     b_with_buff=False)
                     # Add 1s sleep to meet lab network latency
                     time.sleep(1)
@@ -92,21 +92,21 @@ class T46139_idic_IPMISIMSensorAccessible(CBaseCase):
                     str_rsp = ipmi_console.send_command_wait_string(str_command='sensor value get {} {}'
                                                                     .format(sensor_id, chr(13)),
                                                                     wait='IPMI_SIM>',
-                                                                    int_time_out=10,
+                                                                    int_time_out=30,
                                                                     b_with_buff=False)
                     self.log('INFO', 'Sensor (id:{}) value of node: {}'.format(sensor_id, str_rsp))
 
                     ipmi_console.send_command_wait_string(str_command='sensor value set {} {} {}'
                                                           .format(sensor_id, sensor_value, chr(13)),
                                                           wait='IPMI_SIM>',
-                                                          int_time_out=10,
+                                                          int_time_out=30,
                                                           b_with_buff=False)
                     self.log('INFO', 'Sensor (id:{}) value of node set to: {}'.format(sensor_id, sensor_value))
 
                     str_rsp = ipmi_console.send_command_wait_string(str_command='sensor value get {} {}'
                                                                     .format(sensor_id, chr(13)),
                                                                     wait='IPMI_SIM>',
-                                                                    int_time_out=10,
+                                                                    int_time_out=30,
                                                                     b_with_buff=False)
 
                     if re.search(str(sensor_value_expected), str_rsp) is not None:

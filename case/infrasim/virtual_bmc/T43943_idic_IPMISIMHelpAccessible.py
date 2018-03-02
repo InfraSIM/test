@@ -29,7 +29,7 @@ class T43943_idic_IPMISIMHelpAccessible(CBaseCase):
 
                 str_rsp = ipmi_console.send_command_wait_string(str_command='help'+chr(13),
                                                                 wait='IPMI_SIM',
-                                                                int_time_out=10,
+                                                                int_time_out=30,
                                                                 b_with_buff=False)
                 is_match = re.search("Available commands", str_rsp)
 
