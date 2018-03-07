@@ -14,6 +14,7 @@ PROMPT_GUEST = "infrasim@infrasim:~$"
 
 str_ipmitool_script_content ='''
 #!/bin/bash
+set -e
 
 echo "To collect ipmitool fru print..."
 sudo ipmitool fru print |grep 'Product Name'
