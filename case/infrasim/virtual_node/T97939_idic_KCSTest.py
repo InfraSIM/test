@@ -185,8 +185,8 @@ class T97939_idic_KCSTest(CBaseCase):
         ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
         ssh.connect(hostname=qemu_guest_ip, port=22, username='infrasim', password='infrasim')
         chan = ssh.get_transport().open_session()
-        self.log("INFO", "Executing script on remote guest IP: {} on node {}".format(node.get_ip(), node.get_name()))
-        chan.exec_command('sudo bash +x /tmp/ipmitool.sh')
+        self.log("INFO", "Executing script on remote guest IP: {} on node {}".format(qemu_guest_ip, node.get_name()))
+        chan.exec_command('sudo bash +x /tmp/ipmitool.sh >> ipmitool.log')
 
         # # skip error checking due to S2600KP issue IN-1420
         # stdin, stdout, stderr = chan.exec_command('sudo bash +x /tmp/ipmitool.sh')
