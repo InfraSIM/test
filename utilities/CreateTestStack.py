@@ -384,7 +384,8 @@ def write_stack(path):
                 "name": "vRack1",
                 "vPDU": [],
                 "vSwitch": [],
-                "vNode": []
+                "vNode": [],
+                "vChassis": []
             }
         ]
     }
@@ -406,6 +407,10 @@ def write_stack(path):
             node["power"] = []
             stack["vRacks"][0]["vNode"].append(node)
 
+    with open(chassis_dict, 'r') as f:
+        chassis = json.load(f)
+    stack["vRacks"][0]["vChassis"].append(chassis)
+
     with open(path, 'w') as fp:
         json.dump(stack, fp, indent=4)
 
@@ -419,12 +424,13 @@ def stack_empty(path):
 
 
 if __name__ == "__main__":
-    if len(sys.argv) != 3:
-        print "./CreateTestStack.py [ansible_inventory_path] [target_stack_path]"
+    if len(sys.argv) != 4:
+        print "./CreateTestStack.py [ansible_inventory_path] [chassis_dict_file] [target_stack_path]"
         exit(-1)
 
     inventory_path = sys.argv[1]
-    stack_path = sys.argv[2]
+    chassis_dict = sys.argv[2]
+    stack_path = sys.argv[3]
 
     print '-'*40
     print '[Validate ansible version]'

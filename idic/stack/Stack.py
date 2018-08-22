@@ -92,10 +92,19 @@ class CStack(CDevice):
                 return True
         return False
 
+    def have_chassis(self):
+        '''
+        If any chassis in this stack
+        '''
+        for obj_rack in self.walk_rack():
+            if obj_rack.have_switch():
+                return True
+        return False
+
     def walk(self):
         '''
         Generator to traverse all resources in stack
-        In a sequence of rack, pdu, node, switch
+        In a sequence of rack, pdu, node, switch, chassis
         '''
 
         for obj_device in self.walk_rack():
@@ -108,6 +117,9 @@ class CStack(CDevice):
             yield obj_device
 
         for obj_device in self.walk_switch():
+            yield obj_device
+
+        for obj_device in self.walk_chassis():
             yield obj_device
 
     def walk_rack(self):
@@ -140,6 +152,14 @@ class CStack(CDevice):
         for obj_rack in self.walk_rack():
             for obj_switch in obj_rack.walk_switch():
                 yield obj_switch
+
+    def walk_chassis(self):
+        '''
+        Generator to traverse all chassis in this stack
+        '''
+        for obj_rack in self.walk_rack():
+            for obj_chassis in obj_rack.walk_chassis():
+                yield obj_chassis
 
     def query_node(self, str_condition):
         '''
@@ -263,3 +283,8 @@ if __name__ == '__main__':
         print "vSwitchCount", obj_rack.get_switch_count()
         for obj_switch in obj_rack.walk_switch():
             print "vSwitchIP", obj_switch.get_config()
+
+        # vChassis
+        print "vChassisList", obj_rack.get_chassis_list()
+        for obj_chassis in obj_rack.walk_chassis():
+            print "vChassis", obj_chassis.get_config()
