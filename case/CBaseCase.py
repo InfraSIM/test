@@ -871,6 +871,15 @@ class CBaseCase(CLogger):
         gevent.joinall([gevent.spawn(self._enable_ssh, obj_node)
                         for obj_node in list_node])
 
+    def enable_chassis_ssh(self, list_chassis=None):
+        '''
+        Prepare SSH link chassis host vm
+        '''
+        if list_chassis is None:
+            list_chassis = self.stack.walk_chassis()
+        gevent.joinall([gevent.spawn(self._enable_ssh, obj_chassis)
+                        for obj_chassis in list_chassis])
+
     def enable_hypervisor_ssh(self, list_hypervisor=None):
         '''
         Prepare SSH link to all hypervisor's port 22 in list
@@ -894,6 +903,19 @@ class CBaseCase(CLogger):
 
             obj_ssh = obj_device.ssh
             str_prompt = '~$'
+
+        elif obj_device.str_sub_type == 'vChassis':
+            self.log('INFO', 'Build SSH on Chassis {} ...'.format(obj_device.get_name))
+
+            # SSH to chassis host vm on port 22
+            str_ip = obj_device.get_ip()
+            str_ssh_log = os.path.join(self.str_work_directory, 'CHASSIS_SSH_{}_{}_{}.txt'.
+                                       format(str_ip,
+                                              self.str_case_name.split('_')[0],
+                                              time.strftime(Env.TIME_FORMAT_FILE)))
+            obj_ssh = obj_device.ssh
+            str_prompt = '~$'
+
         elif obj_device.str_sub_type == 'hypervisor':
             self.log('INFO', 'Build hypervisor SSH on {} ...'.format(obj_device.get_ip()))
 

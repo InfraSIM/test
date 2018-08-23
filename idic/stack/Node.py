@@ -59,6 +59,12 @@ class CNode(CDevice):
         self.ip = self.dict_config['admin'].get('ip', '')
         self.username = self.dict_config['admin'].get('username', '')
         self.password = self.dict_config['admin'].get('password', '')
+
+        if self.dict_config.get('guest_os'):
+            self.guest_ip = self.dict_config['guest_os'].get('ip', '')
+            self.guest_user = self.dict_config['guest_os'].get('username', '')
+            self.guest_password = self.dict_config['guest_os'].get('password', '')
+
         self.port_ipmi_console = self.dict_config.get('ipmi-console', 9300)
         self.ssh_ipmi_console = CSSH(self.ip, username='', password='', port=self.port_ipmi_console)
         self.ssh = CSSH(self.ip, username=self.username, password=self.password, port=22)

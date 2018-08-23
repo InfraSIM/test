@@ -11,6 +11,7 @@ from lib.Device import CDevice
 from idic.stack.PDU import CPDU
 from idic.stack.Node import CNode
 from idic.stack.Switch import CSwitch
+from idic.stack.Chassis import CChassis
 
 
 class CRack(CDevice):
@@ -24,6 +25,7 @@ class CRack(CDevice):
         self.nodes = {}
         self.pdus = {}
         self.switchs = {}
+        self.chassis = {}
 
         # vPDU
         for pdu_info in self.dict_config['vPDU']:
@@ -34,6 +36,12 @@ class CRack(CDevice):
         for switch_info in self.dict_config['vSwitch']:
             obj_switch = CSwitch(switch_info)
             self.add_switch(obj_switch)
+
+        # vChassis
+
+        for chassis_info in self.dict_config['vChassis']:
+            obj_chassis = CChassis(chassis_info)
+            self.add_chassis(obj_chassis)
 
         # vNode
         for node_info in self.dict_config['vNode']:
@@ -122,3 +130,19 @@ class CRack(CDevice):
         '''
         for obj_switch in self.switchs.values():
             yield obj_switch
+
+    def add_chassis(self, obj_chassis):
+        self.chassis[obj_chassis.get_name()] = obj_chassis
+
+    def get_chassis_list(self):
+        return self.chassis.values()
+
+    def get_chassis_count(self):
+        return self.chassis.__len__()
+
+    def walk_chassis(self):
+        '''
+        Generator to traverse all chassis in this racks
+        '''
+        for obj_chassis in self.chassis.values():
+            yield obj_chassis

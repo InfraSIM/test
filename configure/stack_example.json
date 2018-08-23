@@ -6,6 +6,54 @@
             ],
             "vSwitch": [
             ],
+            "vChassis": [
+                {
+                    "name": "chassis",
+                    "ip": "192.168.132.144",
+                    "username": "infrasim",
+                    "password": "infrasim",
+                    "vnode_a": {
+                        "name": "vnode_a",
+                        "admin": {
+                            "ip": "192.168.129.146",
+                            "username": "infrasim",
+                            "password": "infrasim",
+                            "port": "18022"
+                        },
+                        "guest_os": {
+                            "ip": "192.168.129.147",
+                            "username": "infrasim",
+                            "password": "infrasim",
+                            "port": "22"
+                        },
+                        "bmc": {
+                            "ip": "192.168.129.251",
+                            "username": "admin",
+                            "password": "admin"
+                        }
+                    },
+                    "vnode_b": {
+                        "name": "vnode_b",
+                        "admin": {
+                            "ip": "192.168.133.79",
+                            "username": "infrasim",
+                            "password": "infrasim",
+                            "port": "28022"
+                        },
+                        "guest_os": {
+                            "ip": "192.168.133.80",
+                            "username": "infrasim",
+                            "password": "infrasim",
+                            "port": "22"
+                        },
+                        "bmc": {
+                            "ip": "192.168.132.148",
+                            "username": "admin",
+                            "password": "admin"
+                        }
+                    }
+                }
+            ],
             "vNode": [
                 {
                     "name": "vnode_a_slave",
