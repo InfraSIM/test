@@ -77,8 +77,6 @@ class CChassis(CDevice):
         self.node_a_name = '{}_a'.format(self.name)
         self.node_b_name = '{}_b'.format(self.name)
 
-        if self.node_a_name not in self.dict_config or self.node_b_name not in self.dict_config:
-            raise Exception('Not a chassis config')
         self.ip = self.dict_config.get('ip', '')
         self.dict_node_a = self.dict_config.get(self.node_a_name)
         self.dict_node_b = self.dict_config.get(self.node_b_name)
