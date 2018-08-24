@@ -70,7 +70,6 @@ class T216342_idic_WarEnclosure(CBaseCase):
         for node in chassis.get_node_list():
             dmi_cmd = "sudo dmidecode -t1"
             rsp_dict = chassis.send_command_to_guest(node, dmi_cmd)
-            print rsp_dict
             if "900-564-061" in rsp_dict.get("stdout"):
                 self.log('INFO', 'smbios data on node: {} is verified'.format(node.name))
             else:
@@ -81,7 +80,6 @@ class T216342_idic_WarEnclosure(CBaseCase):
         for node in chassis.get_node_list():
             pci_cmd = "lspci -s bd:00.0"
             rsp_dict = chassis.send_command_to_guest(node, pci_cmd)
-            print rsp_dict
             if "82540EM" in rsp_dict.get("stdout"):
                 self.log('INFO', 'Network Topo on node: {} is verified'.
                          format(node.name))
