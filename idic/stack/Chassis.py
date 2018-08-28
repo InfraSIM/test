@@ -139,9 +139,8 @@ class CChassis(CDevice):
         :return:
         '''
         self.log("INFO", "Start infrasim chassis {}...".format(self.name))
-        self.ssh.send_command_wait_string(str_command="sudo infrasim chassis start {}".
-                                                format(self.name),
-                                                wait='~$')
+        str_command = "sudo infrasim chassis start {}".format(self.name)
+        self.ssh.remote_shell(str_command)
 
     @with_connect('ssh')
     def get_instance_name(self):
@@ -150,17 +149,15 @@ class CChassis(CDevice):
         :return: chassis_ins_name, node_ins_a, node_ins_b
         '''
         self.log("INFO", "Get chassis runtime instance name from {}...".format(self.get_ip()))
-
-        rsp = self.ssh.send_command_wait_string(str_command='ps ax |grep infrasim-chassis |grep -v grep {}'.
-                                                format(chr(13)),
-                                                wait='~$')
-        chassis_ins_name = strip_color_code(rsp.split('\n')[1].split()[6])
+        command = 'ps ax |grep infrasim-chassis |grep -v grep'
+        rsp_dict = self.ssh.remote_shell(command)
+        rsp = rsp_dict.get('stdout')
+        chassis_ins_name = strip_color_code((rsp.split('\n'))[0].split()[6])
 
         self.log("INFO", "Get node_a runtime instance name ...")
-        rsp = self.ssh.send_command_wait_string(str_command="sudo infrasim node status {} {}".
-                                                format(self.node_a_name, chr(13)),
-                                                wait='~$')
-        p_name = re.search(r'(.*)-node is running', rsp)
+        str_command = "sudo infrasim node status {}".format(self.node_a_name)
+        rsp = self.ssh.remote_shell(str_command)
+        p_name = re.search(r'(.*)-node is running', rsp.get('stdout'))
         node_ins_a = ''
         if p_name:
             node_ins_a = self.node_a_name
@@ -168,10 +165,9 @@ class CChassis(CDevice):
             self.log("WARNING", "Node {} is not running".format(self.node_a_name))
 
         self.log("INFO", "Get node_b runtime instance name ...")
-        rsp = self.ssh.send_command_wait_string(str_command='sudo infrasim node status {} {}'.
-                                                format(self.node_b_name, chr(13)),
-                                                wait='~$')
-        p_name = re.search(r'(.*)-node is running', rsp)
+        str_command = 'sudo infrasim node status {}'.format(self.node_b_name)
+        rsp = self.ssh.remote_shell(str_command)
+        p_name = re.search(r'(.*)-node is running', rsp.get('stdout'))
         node_ins_b = ''
         if p_name:
             node_ins_b = self.node_b_name
@@ -187,10 +183,9 @@ class CChassis(CDevice):
         :return: True or False
         '''
         guest_ip = self.get_guest_ip(node)
-        rsp = self.ssh.send_command_wait_string(str_command='ping {} -c 3 {}'.
-                                                format(guest_ip, chr(13)),
-                                                wait='~$')
-        ping = re.search(r'0% packet loss', rsp)
+        str_command = 'ping {} -c 3 '.format(guest_ip)
+        rsp = self.ssh.remote_shell(str_command)
+        ping = re.search(r'0% packet loss', rsp.get('stdout'))
 
         if ping:
             return True
@@ -204,13 +199,11 @@ class CChassis(CDevice):
         run ipmitool lan print on a/b node
         :return:
         '''
-        rsp = self.ssh.send_command_wait_string('ipmitool -I lanplus -H {} -U {} -P {} lan print {}'.
-                                                format(node.bmc.get_ip(),
-                                                        node.bmc.get_username(),
-                                                        node.bmc.get_password(),
-                                                        chr(13)),
-                                                wait='~$')
-        return rsp
+        cmd = 'ipmitool -I lanplus -H {} -U {} -P {} lan print'.format(node.bmc.get_ip(),
+                                                                       node.bmc.get_username(),
+                                                                       node.bmc.get_password())
+        rsp = self.ssh.remote_shell(cmd)
+        return rsp.get("stdout")
 
     @with_connect('ssh')
     def ipmi_fru_print(self, node):
@@ -218,13 +211,11 @@ class CChassis(CDevice):
         run ipmitool command to get fru info on a/b node
         :return:
         '''
-        rsp = self.ssh.send_command_wait_string('ipmitool -I lanplus -H {} -U {} -P {} fru print {}'.
-                                                format(node.bmc.get_ip(),
-                                                        node.bmc.get_username(),
-                                                        node.bmc.get_password(),
-                                                        chr(13)),
-                                                        wait='~$')
-        return rsp
+        cmd = 'ipmitool -I lanplus -H {} -U {} -P {} fru print'.format(node.bmc.get_ip(),
+                                                                       node.bmc.get_username(),
+                                                                       node.bmc.get_password())
+        rsp = self.ssh.remote_shell(cmd)
+        return rsp.get('stdout')
 
     @with_connect('ssh')
     def send_command_to_guest(self, node, cmd_str):
