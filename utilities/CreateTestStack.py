@@ -15,6 +15,7 @@ network, then:
 
 import paramiko
 import sys
+import os
 import traceback
 import socket
 import json
@@ -182,16 +183,16 @@ def solve_arp_flux():
     global inventory_path
     global ssh_password
     global ssh_username
-    dl_cmd = "wget https://raw.githubusercontent.com/InfraSIM/tools/master/diag_arp_flux/diag_arp_flux.py"
-    run_command(dl_cmd)
+    script_file = "./diag_arp_flux.py"
+    if not os.path.isfile(script_file):
+        dl_cmd = "wget --no-check-certificate " \
+                 "https://raw.githubusercontent.com/InfraSIM/tools/master/diag_arp_flux/diag_arp_flux.py"
+        run_command(dl_cmd)
     cp_cmd = "ansible {} -i {} -m copy -a \"src=./diag_arp_flux.py dest=/home/{}/diag_arp_flux.py\"".\
             format(full_group, inventory_path, ssh_username)
     run_command(cp_cmd)
     print "Transferred diag_arp_flux.py to remote hosts."
 
-    install_cmd = "ansible {} -i {} -m shell -a \"echo {} | sudo -S pip install netifaces\"".\
-        format(full_group, inventory_path, ssh_password)
-    run_command(install_cmd)
     route_cmd = "ansible {} -i {} -m shell -a \"echo {} | sudo -S python /home/{}/diag_arp_flux.py\"".\
         format(full_group, inventory_path, ssh_password, ssh_username)
     run_command(route_cmd)
