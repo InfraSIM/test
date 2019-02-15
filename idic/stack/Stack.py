@@ -97,7 +97,7 @@ class CStack(CDevice):
         If any chassis in this stack
         '''
         for obj_rack in self.walk_rack():
-            if obj_rack.have_switch():
+            if obj_rack.have_chassis():
                 return True
         return False
 
