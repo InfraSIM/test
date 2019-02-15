@@ -146,3 +146,9 @@ class CRack(CDevice):
         '''
         for obj_chassis in self.chassis.values():
             yield obj_chassis
+
+    def have_chassis(self):
+        if self.chassis:
+            return True
+        else:
+            return False
