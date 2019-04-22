@@ -173,17 +173,13 @@ class T97939_idic_KCSTest(CBaseCase):
                             format(node.get_name(), node.get_ip()))
                 return
 
-        # To create ipmitool shell script to run on guest OS.
-        f = open('ipmitool.sh', 'w')
-        f.write(str_ipmitool_script_content)
-        f.close()
-
-        # Copy script to guest OS.
-        os.system("sshpass -p infrasim scp -o StrictHostKeyChecking=no ./ipmitool.sh infrasim@{}:/tmp/ipmitool.sh ".format(qemu_guest_ip))
-
         ssh = paramiko.SSHClient()
         ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
         ssh.connect(hostname=qemu_guest_ip, port=22, username='infrasim', password='infrasim')
+        chan = ssh.get_transport().open_session()
+        self.log("INFO", "Saving script on remote guest IP: {} on node {}".format(qemu_guest_ip, node.get_name()))
+        chan.exec_command("cat << EOF > /tmp/ipmitool.sh \n{}\nEOF\n".format(str_ipmitool_script_content))
+
         chan = ssh.get_transport().open_session()
         self.log("INFO", "Executing script on remote guest IP: {} on node {}".format(qemu_guest_ip, node.get_name()))
         chan.exec_command('sudo bash +x /tmp/ipmitool.sh >> ipmitool.log')
