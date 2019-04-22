@@ -132,7 +132,7 @@ class T130052_idic_ESXiTest(CBaseCase):
 
         self.log("INFO", "Getting guest IP for node {} ...".format(node.get_name()))
         for mac in qemu_macs[:]:
-            rsp = node.ssh.send_command_wait_string(str_command=r"arp -e | grep {} | awk '{{print $1}}'".
+            rsp = node.ssh.send_command_wait_string(str_command=r"arp -en | grep {} | awk '{{print $1}}'".
                                                     format(mac)+chr(13),
                                                     wait="~$")
             qemu_guest_ip = rsp.splitlines()[1]
