@@ -153,7 +153,7 @@ class T97939_idic_KCSTest(CBaseCase):
 
         self.log("INFO", "Getting guest IP for node {} ...".format(node.get_name()))
         for mac in qemu_macs[:]:
-            rsp = node.ssh.send_command_wait_string(str_command=r"arp -e | grep {} | awk '{{print $1}}'".
+            rsp = node.ssh.send_command_wait_string(str_command=r"arp -en | grep {} | awk '{{print $1}}'".
                                                     format(mac)+chr(13),
                                                     wait="~$", int_time_out=100, b_with_buff=False)
             qemu_guest_ip = rsp.splitlines()[1]
